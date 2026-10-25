@@ -20,3 +20,6 @@ storage/
 .env
 .env**local
 
+**.db
+**.sqlite
+
