@@ -1,7 +1,6 @@
 import "@tanstack/react-start/server-only"
 import { sql } from "drizzle-orm"
 import { Elysia } from "elysia"
-import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker"
 import { db } from "./db/index.ts"
 import { accountRoutes } from "./routes/account.ts"
 import { adminRoutes } from "./routes/admin.ts"
@@ -13,7 +12,6 @@ import { roomRoutes } from "./routes/rooms.ts"
 
 export const app = new Elysia({
   prefix: "/api",
-  adapter: CloudflareAdapter,
 })
   .get("/", () => "Hello Elysia!")
   .use(authRoutes)
