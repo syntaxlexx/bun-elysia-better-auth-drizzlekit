@@ -13,7 +13,7 @@ import { getTreaty } from "./api.$"
 export const Route = createFileRoute("/")({
   component: App,
   loader: async () => {
-    const api = getTreaty()
+    const { api } = await getTreaty()
     const [hello, ready] = await Promise.all([api.get(), api.ready.get()])
 
     if (hello.error) {

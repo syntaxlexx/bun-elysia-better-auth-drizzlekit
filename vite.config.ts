@@ -258,7 +258,13 @@ const config = defineConfig({
       stylesheet: "src/styles.css",
       functions: ["cn", "cva"],
     },
-    ignorePatterns: ["package-lock.json", "pnpm-lock.yaml", "yarn.lock"],
+    ignorePatterns: [
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      "yarn.lock",
+      "drizzle/**",
+      "src/routeTree.gen.ts",
+    ],
   },
   resolve: { tsconfigPaths: true },
   plugins: lazyPlugins(() => [

@@ -1,28 +1,14 @@
 import { treaty } from "@elysiajs/eden"
 import { createIsomorphicFn, createServerOnlyFn } from "@tanstack/react-start"
 import { createFileRoute } from "@tanstack/react-router"
-import { Elysia } from "elysia"
+import type { App } from "@/server/app"
 
-const readDatabase = createServerOnlyFn(async () => {
-  const { getSql } = await import("@/server/db")
-  const sql = getSql()
-  const [row] = await sql<Array<{ database: string }>>`
-    select current_database() as database
-  `
-
-  return {
-    ok: true,
-    database: row.database,
-  }
+const handleWithApp = createServerOnlyFn(async (request: Request) => {
+  const { app } = await import("@/server/app")
+  return app.fetch(request)
 })
 
-const app = new Elysia({
-  prefix: "/api",
-})
-  .get("/", () => "Hello Elysia!")
-  .get("/ready", () => readDatabase())
-
-const handle = ({ request }: { request: Request }) => app.fetch(request)
+const handle = ({ request }: { request: Request }) => handleWithApp(request)
 
 export const Route = createFileRoute("/api/$")({
   server: {
@@ -39,5 +25,8 @@ export const Route = createFileRoute("/api/$")({
 })
 
 export const getTreaty = createIsomorphicFn()
-  .server(() => treaty(app).api)
-  .client(() => treaty<typeof app>(window.location.origin).api)
+  .server(async () => {
+    const { app } = await import("@/server/app")
+    return { api: treaty(app).api }
+  })
+  .client(() => ({ api: treaty<App>(window.location.origin).api }))
