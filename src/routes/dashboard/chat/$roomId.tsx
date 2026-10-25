@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router"
 import { ChatRoom } from "@/components/chat-room"
 import { errorMessage, isRoomDetail } from "@/lib/records"
-import { getTreaty } from "../../api.$"
+import { getTreaty } from "@api"
 import { Route as ChatRoute } from "./route"
 
 export const Route = createFileRoute("/dashboard/chat/$roomId")({

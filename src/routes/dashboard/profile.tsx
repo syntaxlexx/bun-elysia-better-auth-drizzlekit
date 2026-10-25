@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { errorMessage, isSessionUser } from "@/lib/records"
-import { getTreaty } from "../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/dashboard/profile")({
   loader: async () => {

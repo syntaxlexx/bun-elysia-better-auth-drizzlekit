@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { errorMessage } from "@/lib/records"
-import { getTreaty } from "../../../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin/users/$userId/password")({
   component: PasswordPage,

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatTime, isSessionUser } from "@/lib/records"
-import { getTreaty } from "../../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin/users/")({
   loader: async () => {

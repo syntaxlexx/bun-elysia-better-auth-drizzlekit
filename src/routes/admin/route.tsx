@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { isSessionUser } from "@/lib/records"
-import { getTreaty } from "../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {

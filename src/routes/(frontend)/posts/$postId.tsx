@@ -18,7 +18,7 @@ import {
   isPostDetail,
   isSessionUser,
 } from "@/lib/records"
-import { getTreaty } from "../../api.$"
+import { getTreaty } from "@api"
 
 async function loadPost({ postId }: { postId: string }) {
   const { api } = await getTreaty()

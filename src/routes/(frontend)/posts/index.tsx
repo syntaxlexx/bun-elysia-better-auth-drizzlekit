@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { formatDate, isPostList, isoDate, postState } from "@/lib/records"
 import type { PostSummary } from "@/lib/records"
-import { getTreaty } from "../../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(frontend)/posts/")({
   head: () => ({

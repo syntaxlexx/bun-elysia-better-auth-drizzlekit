@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { formatTime, isSessionUser } from "@/lib/records"
-import { getTreaty } from "../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(frontend)/account-status")({
   beforeLoad: async () => {

@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 import { AppShell, ShellLink, SignOutButton } from "@/components/app-shell"
 import { isSessionUser } from "@/lib/records"
-import { getTreaty } from "../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {

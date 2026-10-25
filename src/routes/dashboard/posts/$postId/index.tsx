@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { formatTime, isPostDetail, postState } from "@/lib/records"
-import { getTreaty } from "@/routes/api.$"
+import { getTreaty } from "@api"
 import { createFileRoute, Link, notFound } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/dashboard/posts/$postId/")({

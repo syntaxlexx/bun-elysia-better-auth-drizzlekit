@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router"
 import { isPostList, isSessionUser } from "@/lib/records"
-import { getTreaty } from "../../api.$"
+import { getTreaty } from "@api"
 
 const issueKinds = ["BAN", "SUSPEND", "LOCK"] as const
 

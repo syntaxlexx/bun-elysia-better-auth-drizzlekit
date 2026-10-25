@@ -2,7 +2,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router"
 import { SiteFooter, SiteHeader } from "@/components/site-chrome"
 import { isSessionUser } from "@/lib/records"
 import type { SessionUser } from "@/lib/records"
-import { getTreaty } from "../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(frontend)")({
   head: () => ({

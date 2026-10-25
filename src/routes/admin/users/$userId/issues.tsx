@@ -4,7 +4,7 @@ import { Field, areaClassName, fieldClassName } from "@/components/field"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { errorMessage, formatTime } from "@/lib/records"
-import { getTreaty } from "../../../api.$"
+import { getTreaty } from "@api"
 
 const durations = [
   ["1h", "1 hour"],

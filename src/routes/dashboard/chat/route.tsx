@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { errorMessage, isRealtimeConfig, isRoomList } from "@/lib/records"
-import { getTreaty } from "../../api.$"
+import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/dashboard/chat")({
   loader: async () => {
