@@ -1,5 +1,14 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
-import { AppShell, ShellLink, SignOutButton } from "@/components/app-shell"
+import { AdminSidebar } from "@/components/admin-sidebar"
+import { AdminUserMenu } from "@/components/admin-user-menu"
+import { ThemeSwitcher } from "@/components/theme-switcher"
+import { Separator } from "@/components/ui/separator"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { isSessionUser } from "@/lib/records"
 import { getTreaty } from "../api.$"
 
@@ -25,19 +34,24 @@ function AdminLayout() {
   const { user } = Route.useRouteContext()
 
   return (
-    <AppShell
-      title="Admin"
-      subtitle={`${user.fname} ${user.lname}`}
-      nav={
-        <>
-          <ShellLink to="/admin/users">Users</ShellLink>
-          <ShellLink to="/admin/posts">All posts</ShellLink>
-          <ShellLink to="/dashboard">Dashboard</ShellLink>
-          <SignOutButton />
-        </>
-      }
-    >
-      <Outlet />
-    </AppShell>
+    <TooltipProvider>
+      <SidebarProvider>
+        <AdminSidebar user={user} />
+        <SidebarInset>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger />
+            <Separator orientation="vertical" className="h-4" />
+            <p className="text-sm font-medium">Admin</p>
+            <div className="ml-auto flex items-center gap-1">
+              <ThemeSwitcher />
+              <AdminUserMenu user={user} />
+            </div>
+          </header>
+          <div className="flex flex-1 flex-col gap-4 p-4">
+            <Outlet />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }
