@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router"
 import type { ReactNode } from "react"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
 import { getTreaty } from "@/routes/api.$"
 
@@ -28,7 +29,10 @@ export function AppShell({
               ) : null}
             </div>
           </Link>
-          <nav className="flex flex-wrap items-center gap-2">{nav}</nav>
+          <nav className="flex flex-wrap items-center gap-2">
+            {nav}
+            <ThemeSwitcher />
+          </nav>
         </div>
       </header>
       <main className="mx-auto flex max-w-5xl flex-col gap-4 p-4">

@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router"
 import { Feather, Menu, X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import type { SessionUser } from "@/lib/records"
@@ -79,20 +80,23 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
             <SiteLink key={link.to} {...link} />
           ))}
         </nav>
-        <div className="hidden items-center gap-2 md:flex">
-          <AccountActions user={user} pending={pending} onLogout={logout} />
+        <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex">
+            <AccountActions user={user} pending={pending} onLogout={logout} />
+          </div>
+          <ThemeSwitcher />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="md:hidden"
+            aria-expanded={open}
+            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <X /> : <Menu />}
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="md:hidden"
-          aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? <X /> : <Menu />}
-        </Button>
       </div>
       {open ? (
         <div className="border-t border-border md:hidden">
