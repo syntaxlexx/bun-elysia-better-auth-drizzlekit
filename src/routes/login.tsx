@@ -1,4 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,9 +14,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { isSessionUser } from "@/lib/records"
 import { getTreaty } from "./api.$"
 
-export const Route = createFileRoute("/login")({ component: LoginPage })
+export const Route = createFileRoute("/login")({
+  beforeLoad: async () => {
+    const { api } = await getTreaty()
+    const result = await api.me.get()
+    if (!result.error && isSessionUser(result.data)) {
+      throw redirect({ to: "/dashboard" })
+    }
+  },
+  component: LoginPage,
+})
 
 const fieldClassName =
   "border-input bg-background h-8 w-full rounded-2xl border px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
