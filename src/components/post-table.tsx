@@ -21,6 +21,7 @@ export function PostTable({
           <th className="py-2 pr-3 font-medium">Author</th>
           <th className="py-2 pr-3 font-medium">State</th>
           <th className="py-2 pr-3 font-medium">Views</th>
+          <th className="py-2 pr-3 font-medium">Rating</th>
           <th className="py-2 font-medium">Updated</th>
         </tr>
       </thead>
@@ -56,6 +57,11 @@ export function PostTable({
               <td className="py-3 pr-3">{post.authorName}</td>
               <td className="py-3 pr-3">{state}</td>
               <td className="py-3 pr-3">{post.viewsCounter}</td>
+              <td className="py-3 pr-3">
+                {post.averageRatings === null
+                  ? "—"
+                  : post.averageRatings.toFixed(1)}
+              </td>
               <td className="py-3">{formatTime(post.updatedAt)}</td>
             </tr>
           )

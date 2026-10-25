@@ -5,6 +5,8 @@ import {
   useNavigate,
 } from "@tanstack/react-router"
 import { useState } from "react"
+import { Field } from "@/components/field"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,10 +16,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { isSessionUser } from "@/lib/records"
-import { getTreaty } from "./api.$"
+import { getTreaty } from "../api.$"
 
-export const Route = createFileRoute("/login")({
+export const Route = createFileRoute("/(auth)/login")({
+  head: () => ({
+    meta: [{ title: "Log in — Folio" }],
+  }),
   beforeLoad: async () => {
     const { api } = await getTreaty()
     const result = await api.me.get()
@@ -27,9 +33,6 @@ export const Route = createFileRoute("/login")({
   },
   component: LoginPage,
 })
-
-const fieldClassName =
-  "border-input bg-background h-8 w-full rounded-2xl border px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
 
 function field(form: FormData, name: string) {
   const value = form.get(name)
@@ -90,59 +93,55 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-svh p-6">
-      <Card className="max-w-sm">
-        <CardHeader>
-          <CardTitle>Log in</CardTitle>
-          <CardDescription>
-            Use the email or phone on your account.
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={onSubmit}>
-          <CardContent className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-sm">
-              Email or phone
-              <input
-                className={fieldClassName}
-                name="identifier"
-                autoComplete="username"
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Password
-              <input
-                className={fieldClassName}
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
-            </label>
-            {failure?.message ? (
-              <div className="flex flex-col gap-1 text-sm text-destructive">
-                <p>{failure.message}</p>
-                {failure.bannedAt ? <p>Banned {failure.bannedAt}</p> : null}
-                {failure.lockedUntil ? (
-                  <p>Locked until {failure.lockedUntil}</p>
-                ) : null}
-              </div>
-            ) : null}
-          </CardContent>
-          <CardFooter className="flex gap-2">
-            <Button type="submit" disabled={pending}>
-              {pending ? "Signing in" : "Log in"}
-            </Button>
-            <Button
-              nativeButton={false}
-              render={<Link to="/register" />}
-              variant="outline"
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardDescription>
+          Use the email or phone on your Folio account.
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={onSubmit}>
+        <CardContent className="flex flex-col gap-3">
+          <Field label="Email or phone">
+            <Input name="identifier" autoComplete="username" required />
+          </Field>
+          <Field label="Password">
+            <Input
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </Field>
+          {failure?.message ? (
+            <Alert variant="destructive">
+              <AlertTitle>{failure.message}</AlertTitle>
+              {failure.bannedAt || failure.lockedUntil ? (
+                <AlertDescription>
+                  {failure.bannedAt ? <p>Banned {failure.bannedAt}</p> : null}
+                  {failure.lockedUntil ? (
+                    <p>Locked until {failure.lockedUntil}</p>
+                  ) : null}
+                </AlertDescription>
+              ) : null}
+            </Alert>
+          ) : null}
+        </CardContent>
+        <CardFooter className="flex-col items-stretch gap-3">
+          <Button type="submit" disabled={pending}>
+            {pending ? "Signing in" : "Log in"}
+          </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            New to Folio?{" "}
+            <Link
+              to="/register"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
             >
-              Register
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+              Create an account
+            </Link>
+          </p>
+        </CardFooter>
+      </form>
+    </Card>
   )
 }

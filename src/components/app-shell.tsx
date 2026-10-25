@@ -18,14 +18,16 @@ export function AppShell({
     <div className="min-h-svh bg-muted/40">
       <header className="border-b border-border bg-background">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
-          <div>
-            <p className="text-xs tracking-wide text-muted-foreground uppercase">
-              {title}
-            </p>
-            {subtitle ? (
-              <p className="text-lg font-medium">{subtitle}</p>
-            ) : null}
-          </div>
+          <Link to="/" className="cursor-pointer">
+            <div>
+              <p className="text-xs tracking-wide text-muted-foreground uppercase">
+                {title}
+              </p>
+              {subtitle ? (
+                <p className="text-lg font-medium">{subtitle}</p>
+              ) : null}
+            </div>
+          </Link>
           <nav className="flex flex-wrap items-center gap-2">{nav}</nav>
         </div>
       </header>

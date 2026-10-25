@@ -51,7 +51,7 @@ bun run db:migrate
 - Posts have a `title` and a BlockNote JSON document in `posts.body`. HTML is not the stored source.
 - A public post has `status = PUBLISHED` and `published_at` is null or `<= now()`. A `PUBLISHED` post with a future `published_at` is scheduled. `DRAFT` and scheduled posts are visible to the author and to admins only.
 - Increment `views_counter` by 1 when a public viewer opens the post. No deduplication.
-- One rating per user per post. Score is an integer from 1 to 5.
+- One rating per user per post. Score is an integer from 1 to 5. A rating may include a written review. `posts.average_ratings` stores the mean score and is recalculated whenever a rating is saved.
 - Comments are plain text.
 - Avatar files go in `storage/avatars/` (gitignored). Max 2_000_000 bytes. Allow `image/png`, `image/jpeg`, and `image/webp`.
 - Lock durations are exact for hours, days, and weeks. Month and year options use fixed day counts: 1 month = 30 days, 3 months = 90 days, 6 months = 180 days, 9 months = 270 days, 1 year = 365 days.
@@ -109,17 +109,18 @@ Written whenever an admin bans, suspends, or locks a user. Login reads the lates
 
 ### posts
 
-| column        | type             | notes                                 |
-| ------------- | ---------------- | ------------------------------------- |
-| id            | uuid pk          |                                       |
-| author_id     | uuid             | fk users, cascade delete              |
-| title         | text             | required                              |
-| body          | jsonb            | BlockNote document, array of blocks   |
-| views_counter | integer          | default 0                             |
-| status        | post_status      | `DRAFT`, `PUBLISHED`. Default `DRAFT` |
-| published_at  | timestamptz null | future value schedules the post       |
-| created_at    | timestamptz      |                                       |
-| updated_at    | timestamptz      |                                       |
+| column          | type             | notes                                 |
+| --------------- | ---------------- | ------------------------------------- |
+| id              | uuid pk          |                                       |
+| author_id       | uuid             | fk users, cascade delete              |
+| title           | text             | required                              |
+| body            | jsonb            | BlockNote document, array of blocks   |
+| views_counter   | integer          | default 0                             |
+| average_ratings | float8 null      | mean of rating scores; null when none |
+| status          | post_status      | `DRAFT`, `PUBLISHED`. Default `DRAFT` |
+| published_at    | timestamptz null | future value schedules the post       |
+| created_at      | timestamptz      |                                       |
+| updated_at      | timestamptz      |                                       |
 
 ### comments
 
@@ -140,6 +141,7 @@ Written whenever an admin bans, suspends, or locks a user. Login reads the lates
 | post_id    | uuid        | cascade delete          |
 | user_id    | uuid        | cascade delete          |
 | score      | integer     | check `1 <= score <= 5` |
+| review     | text null   | optional written review |
 | created_at | timestamptz |                         |
 
 Unique on `(post_id, user_id)`. A second rating from the same user updates the existing row.
@@ -251,7 +253,7 @@ Mount these on the existing Elysia app. Shapes below are the JSON bodies. Authen
 | DELETE | /api/posts/:postId                | author or admin   | delete                                |
 | GET    | /api/me/posts                     | session           | own posts                             |
 | POST   | /api/posts/:postId/comments       | session           | `{ body }`                            |
-| PUT    | /api/posts/:postId/rating         | session           | `{ score }`                           |
+| PUT    | /api/posts/:postId/rating         | session           | `{ score, review? }`                  |
 
 Public user JSON omits `passwordHash`. Include `id`, names, email, phone, verification timestamps, role, status, bannedAt, lockedUntil, avatarUrl, createdAt.
 

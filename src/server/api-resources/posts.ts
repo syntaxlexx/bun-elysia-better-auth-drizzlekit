@@ -26,6 +26,7 @@ export const posts = {
     authorName: users.publicUserResource(author).name,
     title: post.title,
     viewsCounter: post.viewsCounter,
+    averageRatings: post.averageRatings,
     status: post.status,
     publishedAt: iso(post.publishedAt),
     createdAt: post.createdAt.toISOString(),

@@ -4,19 +4,20 @@ import {
   notFound,
   useRouter,
 } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { PostEditor } from "@/components/post-editor"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import {
   errorMessage,
   formatTime,
   isPostDetail,
   isSessionUser,
 } from "@/lib/records"
-import { getTreaty } from "../api.$"
+import { getTreaty } from "../../api.$"
 
-export const Route = createFileRoute("/posts/$postId")({
+export const Route = createFileRoute("/(frontend)/posts/$postId")({
   loader: async ({ params }) => {
     const { api } = await getTreaty()
     const [postResult, meResult] = await Promise.all([
@@ -40,15 +41,30 @@ function PublicPostPage() {
   const { post, user } = Route.useLoaderData()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [score, setScore] = useState<number | null>(post.rating.mine)
+  const [review, setReview] = useState(post.rating.myReview ?? "")
   const canParticipate = user?.status === "ACTIVE"
-  const average =
-    post.rating.average === null ? null : post.rating.average.toFixed(1)
 
-  async function rate(score: number) {
+  useEffect(() => {
+    setScore(post.rating.mine)
+    setReview(post.rating.myReview ?? "")
+  }, [post.id, post.rating.mine, post.rating.myReview])
+  const average =
+    post.averageRatings === null ? null : post.averageRatings.toFixed(1)
+
+  async function rate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (score === null) {
+      setError("Choose a rating from 1 to 5.")
+      return
+    }
     setError(null)
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.posts({ postId: post.id }).rating.put({ score })
+    const result = await api.posts({ postId: post.id }).rating.put({
+      score,
+      review,
+    })
     setPending(false)
     if (result.error) {
       setError(errorMessage(result.error, "Could not save the rating."))
@@ -97,28 +113,62 @@ function PublicPostPage() {
           <p className="text-sm text-muted-foreground">
             {post.rating.count === 0
               ? "No ratings yet."
-              : `${average} from ${post.rating.count}`}
+              : `${average} average from ${post.rating.count} ${post.rating.count === 1 ? "rating" : "ratings"}`}
           </p>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-4">
           {canParticipate ? (
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((score) => (
-                <Button
-                  key={score}
-                  type="button"
-                  variant={post.rating.mine === score ? "default" : "outline"}
-                  disabled={pending}
-                  onClick={() => void rate(score)}
-                >
-                  {score}
-                </Button>
-              ))}
-            </div>
+            <form onSubmit={rate} className="flex flex-col gap-3">
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    variant={score === value ? "default" : "outline"}
+                    disabled={pending}
+                    onClick={() => setScore(value)}
+                  >
+                    {value}
+                  </Button>
+                ))}
+              </div>
+              <Textarea
+                value={review}
+                onChange={(event) => setReview(event.target.value)}
+                maxLength={2000}
+                placeholder="Write a review"
+                disabled={pending}
+              />
+              <Button type="submit" disabled={pending}>
+                {post.rating.mine === null ? "Rate" : "Update rating"}
+              </Button>
+            </form>
           ) : (
             <Link to="/login" className="text-sm underline">
               Log in to rate this post
             </Link>
+          )}
+          {post.rating.reviews.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No reviews yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {post.rating.reviews.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="rounded-2xl border border-border p-3"
+                >
+                  <p className="text-sm font-medium">{entry.authorName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {entry.score} / 5 · {formatTime(entry.createdAt)}
+                  </p>
+                  {entry.review ? (
+                    <p className="mt-2 text-sm whitespace-pre-wrap">
+                      {entry.review}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>

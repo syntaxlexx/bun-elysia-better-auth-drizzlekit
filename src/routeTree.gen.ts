@@ -9,20 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AccountStatusRouteImport } from './routes/account-status'
+import { Route as authRouteRouteImport } from './routes/(auth)/route'
+import { Route as frontendRouteRouteImport } from './routes/(frontend)/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as PostsRouteImport } from './routes/posts'
-import { Route as RegisterRouteImport } from './routes/register'
+import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as authRegisterRouteImport } from './routes/(auth)/register'
+import { Route as frontendIndexRouteImport } from './routes/(frontend)/index'
+import { Route as frontendAboutRouteImport } from './routes/(frontend)/about'
+import { Route as frontendAccountStatusRouteImport } from './routes/(frontend)/account-status'
+import { Route as frontendContactRouteImport } from './routes/(frontend)/contact'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminPostsRouteImport } from './routes/admin/posts'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
-import { Route as PostsIndexRouteImport } from './routes/posts/index'
-import { Route as PostsPostIdRouteImport } from './routes/posts/$postId'
+import { Route as frontendPostsIndexRouteImport } from './routes/(frontend)/posts/index'
+import { Route as frontendPostsPostIdRouteImport } from './routes/(frontend)/posts/$postId'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin/users/index'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin/users/$userId'
 import { Route as DashboardPostsIndexRouteImport } from './routes/dashboard/posts/index'
@@ -33,15 +36,14 @@ import { Route as AdminUsersUserIdIssuesRouteImport } from './routes/admin/users
 import { Route as AdminUsersUserIdPasswordRouteImport } from './routes/admin/users/$userId/password'
 import { Route as AdminUsersUserIdPostsRouteImport } from './routes/admin/users/$userId/posts'
 import { Route as AdminUsersUserIdRolesRouteImport } from './routes/admin/users/$userId/roles'
+import { Route as DashboardPostsPostIdEditRouteImport } from './routes/dashboard/posts/$postId_.edit'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const authRouteRoute = authRouteRouteImport.update({
+  id: '/(auth)',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AccountStatusRoute = AccountStatusRouteImport.update({
-  id: '/account-status',
-  path: '/account-status',
+const frontendRouteRoute = frontendRouteRouteImport.update({
+  id: '/(frontend)',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRouteRoute = AdminRouteRouteImport.update({
@@ -54,20 +56,35 @@ const DashboardRouteRoute = DashboardRouteRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
+const authLoginRoute = authLoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => authRouteRoute,
 } as any)
-const PostsRoute = PostsRouteImport.update({
-  id: '/posts',
-  path: '/posts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
+const authRegisterRoute = authRegisterRouteImport.update({
   id: '/register',
   path: '/register',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => authRouteRoute,
+} as any)
+const frontendIndexRoute = frontendIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => frontendRouteRoute,
+} as any)
+const frontendAboutRoute = frontendAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => frontendRouteRoute,
+} as any)
+const frontendAccountStatusRoute = frontendAccountStatusRouteImport.update({
+  id: '/account-status',
+  path: '/account-status',
+  getParentRoute: () => frontendRouteRoute,
+} as any)
+const frontendContactRoute = frontendContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => frontendRouteRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -94,15 +111,15 @@ const DashboardProfileRoute = DashboardProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const PostsIndexRoute = PostsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PostsRoute,
+const frontendPostsIndexRoute = frontendPostsIndexRouteImport.update({
+  id: '/posts/',
+  path: '/posts/',
+  getParentRoute: () => frontendRouteRoute,
 } as any)
-const PostsPostIdRoute = PostsPostIdRouteImport.update({
-  id: '/$postId',
-  path: '/$postId',
-  getParentRoute: () => PostsRoute,
+const frontendPostsPostIdRoute = frontendPostsPostIdRouteImport.update({
+  id: '/posts/$postId',
+  path: '/posts/$postId',
+  getParentRoute: () => frontendRouteRoute,
 } as any)
 const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
   id: '/users/',
@@ -155,184 +172,205 @@ const AdminUsersUserIdRolesRoute = AdminUsersUserIdRolesRouteImport.update({
   path: '/roles',
   getParentRoute: () => AdminUsersUserIdRoute,
 } as any)
+const DashboardPostsPostIdEditRoute =
+  DashboardPostsPostIdEditRouteImport.update({
+    id: '/posts/$postId_/edit',
+    path: '/posts/$postId/edit',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/account-status': typeof AccountStatusRoute
-  '/login': typeof LoginRoute
-  '/posts': typeof PostsRouteWithChildren
-  '/register': typeof RegisterRoute
+  '/login': typeof authLoginRoute
+  '/register': typeof authRegisterRoute
+  '/about': typeof frontendAboutRoute
+  '/account-status': typeof frontendAccountStatusRoute
+  '/contact': typeof frontendContactRoute
   '/admin/posts': typeof AdminPostsRoute
   '/api/$': typeof ApiSplatRoute
   '/dashboard/profile': typeof DashboardProfileRoute
-  '/posts/$postId': typeof PostsPostIdRoute
+  '/': typeof frontendIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/posts/': typeof PostsIndexRoute
+  '/posts/$postId': typeof frontendPostsPostIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRouteWithChildren
   '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
   '/dashboard/posts/new': typeof DashboardPostsNewRoute
+  '/posts/': typeof frontendPostsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/dashboard/posts/': typeof DashboardPostsIndexRoute
   '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
   '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
   '/admin/users/$userId/posts': typeof AdminUsersUserIdPostsRoute
   '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
+  '/dashboard/posts/$postId/edit': typeof DashboardPostsPostIdEditRoute
   '/admin/users/$userId/': typeof AdminUsersUserIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/account-status': typeof AccountStatusRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
+  '/login': typeof authLoginRoute
+  '/register': typeof authRegisterRoute
+  '/about': typeof frontendAboutRoute
+  '/account-status': typeof frontendAccountStatusRoute
+  '/contact': typeof frontendContactRoute
   '/admin/posts': typeof AdminPostsRoute
   '/api/$': typeof ApiSplatRoute
   '/dashboard/profile': typeof DashboardProfileRoute
-  '/posts/$postId': typeof PostsPostIdRoute
+  '/': typeof frontendIndexRoute
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
-  '/posts': typeof PostsIndexRoute
+  '/posts/$postId': typeof frontendPostsPostIdRoute
   '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
   '/dashboard/posts/new': typeof DashboardPostsNewRoute
+  '/posts': typeof frontendPostsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
   '/dashboard/posts': typeof DashboardPostsIndexRoute
   '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
   '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
   '/admin/users/$userId/posts': typeof AdminUsersUserIdPostsRoute
   '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
+  '/dashboard/posts/$postId/edit': typeof DashboardPostsPostIdEditRoute
   '/admin/users/$userId': typeof AdminUsersUserIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/(auth)': typeof authRouteRouteWithChildren
+  '/(frontend)': typeof frontendRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
-  '/account-status': typeof AccountStatusRoute
-  '/login': typeof LoginRoute
-  '/posts': typeof PostsRouteWithChildren
-  '/register': typeof RegisterRoute
+  '/(auth)/login': typeof authLoginRoute
+  '/(auth)/register': typeof authRegisterRoute
+  '/(frontend)/about': typeof frontendAboutRoute
+  '/(frontend)/account-status': typeof frontendAccountStatusRoute
+  '/(frontend)/contact': typeof frontendContactRoute
   '/admin/posts': typeof AdminPostsRoute
   '/api/$': typeof ApiSplatRoute
   '/dashboard/profile': typeof DashboardProfileRoute
-  '/posts/$postId': typeof PostsPostIdRoute
+  '/(frontend)/': typeof frontendIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/posts/': typeof PostsIndexRoute
+  '/(frontend)/posts/$postId': typeof frontendPostsPostIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRouteWithChildren
   '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
   '/dashboard/posts/new': typeof DashboardPostsNewRoute
+  '/(frontend)/posts/': typeof frontendPostsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
   '/dashboard/posts/': typeof DashboardPostsIndexRoute
   '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
   '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
   '/admin/users/$userId/posts': typeof AdminUsersUserIdPostsRoute
   '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
+  '/dashboard/posts/$postId_/edit': typeof DashboardPostsPostIdEditRoute
   '/admin/users/$userId/': typeof AdminUsersUserIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/admin'
     | '/dashboard'
-    | '/account-status'
     | '/login'
-    | '/posts'
     | '/register'
+    | '/about'
+    | '/account-status'
+    | '/contact'
     | '/admin/posts'
     | '/api/$'
     | '/dashboard/profile'
-    | '/posts/$postId'
+    | '/'
     | '/admin/'
     | '/dashboard/'
-    | '/posts/'
+    | '/posts/$postId'
     | '/admin/users/$userId'
     | '/dashboard/posts/$postId'
     | '/dashboard/posts/new'
+    | '/posts/'
     | '/admin/users/'
     | '/dashboard/posts/'
     | '/admin/users/$userId/issues'
     | '/admin/users/$userId/password'
     | '/admin/users/$userId/posts'
     | '/admin/users/$userId/roles'
+    | '/dashboard/posts/$postId/edit'
     | '/admin/users/$userId/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/account-status'
     | '/login'
     | '/register'
+    | '/about'
+    | '/account-status'
+    | '/contact'
     | '/admin/posts'
     | '/api/$'
     | '/dashboard/profile'
-    | '/posts/$postId'
+    | '/'
     | '/admin'
     | '/dashboard'
-    | '/posts'
+    | '/posts/$postId'
     | '/dashboard/posts/$postId'
     | '/dashboard/posts/new'
+    | '/posts'
     | '/admin/users'
     | '/dashboard/posts'
     | '/admin/users/$userId/issues'
     | '/admin/users/$userId/password'
     | '/admin/users/$userId/posts'
     | '/admin/users/$userId/roles'
+    | '/dashboard/posts/$postId/edit'
     | '/admin/users/$userId'
   id:
     | '__root__'
-    | '/'
+    | '/(auth)'
+    | '/(frontend)'
     | '/admin'
     | '/dashboard'
-    | '/account-status'
-    | '/login'
-    | '/posts'
-    | '/register'
+    | '/(auth)/login'
+    | '/(auth)/register'
+    | '/(frontend)/about'
+    | '/(frontend)/account-status'
+    | '/(frontend)/contact'
     | '/admin/posts'
     | '/api/$'
     | '/dashboard/profile'
-    | '/posts/$postId'
+    | '/(frontend)/'
     | '/admin/'
     | '/dashboard/'
-    | '/posts/'
+    | '/(frontend)/posts/$postId'
     | '/admin/users/$userId'
     | '/dashboard/posts/$postId'
     | '/dashboard/posts/new'
+    | '/(frontend)/posts/'
     | '/admin/users/'
     | '/dashboard/posts/'
     | '/admin/users/$userId/issues'
     | '/admin/users/$userId/password'
     | '/admin/users/$userId/posts'
     | '/admin/users/$userId/roles'
+    | '/dashboard/posts/$postId_/edit'
     | '/admin/users/$userId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  authRouteRoute: typeof authRouteRouteWithChildren
+  frontendRouteRoute: typeof frontendRouteRouteWithChildren
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
-  AccountStatusRoute: typeof AccountStatusRoute
-  LoginRoute: typeof LoginRoute
-  PostsRoute: typeof PostsRouteWithChildren
-  RegisterRoute: typeof RegisterRoute
   ApiSplatRoute: typeof ApiSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/(auth)': {
+      id: '/(auth)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof authRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/account-status': {
-      id: '/account-status'
-      path: '/account-status'
-      fullPath: '/account-status'
-      preLoaderRoute: typeof AccountStatusRouteImport
+    '/(frontend)': {
+      id: '/(frontend)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof frontendRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -349,26 +387,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
+    '/(auth)/login': {
+      id: '/(auth)/login'
       path: '/login'
       fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof authLoginRouteImport
+      parentRoute: typeof authRouteRoute
     }
-    '/posts': {
-      id: '/posts'
-      path: '/posts'
-      fullPath: '/posts'
-      preLoaderRoute: typeof PostsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register': {
-      id: '/register'
+    '/(auth)/register': {
+      id: '/(auth)/register'
       path: '/register'
       fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof authRegisterRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(frontend)/': {
+      id: '/(frontend)/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof frontendIndexRouteImport
+      parentRoute: typeof frontendRouteRoute
+    }
+    '/(frontend)/about': {
+      id: '/(frontend)/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof frontendAboutRouteImport
+      parentRoute: typeof frontendRouteRoute
+    }
+    '/(frontend)/account-status': {
+      id: '/(frontend)/account-status'
+      path: '/account-status'
+      fullPath: '/account-status'
+      preLoaderRoute: typeof frontendAccountStatusRouteImport
+      parentRoute: typeof frontendRouteRoute
+    }
+    '/(frontend)/contact': {
+      id: '/(frontend)/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof frontendContactRouteImport
+      parentRoute: typeof frontendRouteRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -405,19 +464,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardProfileRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/posts/': {
-      id: '/posts/'
-      path: '/'
+    '/(frontend)/posts/': {
+      id: '/(frontend)/posts/'
+      path: '/posts'
       fullPath: '/posts/'
-      preLoaderRoute: typeof PostsIndexRouteImport
-      parentRoute: typeof PostsRoute
+      preLoaderRoute: typeof frontendPostsIndexRouteImport
+      parentRoute: typeof frontendRouteRoute
     }
-    '/posts/$postId': {
-      id: '/posts/$postId'
-      path: '/$postId'
+    '/(frontend)/posts/$postId': {
+      id: '/(frontend)/posts/$postId'
+      path: '/posts/$postId'
       fullPath: '/posts/$postId'
-      preLoaderRoute: typeof PostsPostIdRouteImport
-      parentRoute: typeof PostsRoute
+      preLoaderRoute: typeof frontendPostsPostIdRouteImport
+      parentRoute: typeof frontendRouteRoute
     }
     '/admin/users/': {
       id: '/admin/users/'
@@ -489,8 +548,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersUserIdRolesRouteImport
       parentRoute: typeof AdminUsersUserIdRoute
     }
+    '/dashboard/posts/$postId_/edit': {
+      id: '/dashboard/posts/$postId_/edit'
+      path: '/posts/$postId/edit'
+      fullPath: '/dashboard/posts/$postId/edit'
+      preLoaderRoute: typeof DashboardPostsPostIdEditRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
+
+interface authRouteRouteChildren {
+  authLoginRoute: typeof authLoginRoute
+  authRegisterRoute: typeof authRegisterRoute
+}
+
+const authRouteRouteChildren: authRouteRouteChildren = {
+  authLoginRoute: authLoginRoute,
+  authRegisterRoute: authRegisterRoute,
+}
+
+const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
+  authRouteRouteChildren,
+)
+
+interface frontendRouteRouteChildren {
+  frontendAboutRoute: typeof frontendAboutRoute
+  frontendAccountStatusRoute: typeof frontendAccountStatusRoute
+  frontendContactRoute: typeof frontendContactRoute
+  frontendIndexRoute: typeof frontendIndexRoute
+  frontendPostsPostIdRoute: typeof frontendPostsPostIdRoute
+  frontendPostsIndexRoute: typeof frontendPostsIndexRoute
+}
+
+const frontendRouteRouteChildren: frontendRouteRouteChildren = {
+  frontendAboutRoute: frontendAboutRoute,
+  frontendAccountStatusRoute: frontendAccountStatusRoute,
+  frontendContactRoute: frontendContactRoute,
+  frontendIndexRoute: frontendIndexRoute,
+  frontendPostsPostIdRoute: frontendPostsPostIdRoute,
+  frontendPostsIndexRoute: frontendPostsIndexRoute,
+}
+
+const frontendRouteRouteWithChildren = frontendRouteRoute._addFileChildren(
+  frontendRouteRouteChildren,
+)
 
 interface AdminUsersUserIdRouteChildren {
   AdminUsersUserIdIssuesRoute: typeof AdminUsersUserIdIssuesRoute
@@ -535,6 +637,7 @@ interface DashboardRouteRouteChildren {
   DashboardPostsPostIdRoute: typeof DashboardPostsPostIdRoute
   DashboardPostsNewRoute: typeof DashboardPostsNewRoute
   DashboardPostsIndexRoute: typeof DashboardPostsIndexRoute
+  DashboardPostsPostIdEditRoute: typeof DashboardPostsPostIdEditRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -543,32 +646,18 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardPostsPostIdRoute: DashboardPostsPostIdRoute,
   DashboardPostsNewRoute: DashboardPostsNewRoute,
   DashboardPostsIndexRoute: DashboardPostsIndexRoute,
+  DashboardPostsPostIdEditRoute: DashboardPostsPostIdEditRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
   DashboardRouteRouteChildren,
 )
 
-interface PostsRouteChildren {
-  PostsPostIdRoute: typeof PostsPostIdRoute
-  PostsIndexRoute: typeof PostsIndexRoute
-}
-
-const PostsRouteChildren: PostsRouteChildren = {
-  PostsPostIdRoute: PostsPostIdRoute,
-  PostsIndexRoute: PostsIndexRoute,
-}
-
-const PostsRouteWithChildren = PostsRoute._addFileChildren(PostsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  authRouteRoute: authRouteRouteWithChildren,
+  frontendRouteRoute: frontendRouteRouteWithChildren,
   AdminRouteRoute: AdminRouteRouteWithChildren,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
-  AccountStatusRoute: AccountStatusRoute,
-  LoginRoute: LoginRoute,
-  PostsRoute: PostsRouteWithChildren,
-  RegisterRoute: RegisterRoute,
   ApiSplatRoute: ApiSplatRoute,
 }
 export const routeTree = rootRouteImport

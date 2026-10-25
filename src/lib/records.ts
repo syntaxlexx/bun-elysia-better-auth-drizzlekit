@@ -94,6 +94,7 @@ export type PostSummary = {
   authorName: string
   title: string
   viewsCounter: number
+  averageRatings: number | null
   status: "DRAFT" | "PUBLISHED"
   publishedAt: string | Date | null
   createdAt: string | Date
@@ -116,6 +117,15 @@ export type PostDetail = OwnedPost & {
     average: number | null
     count: number
     mine: number | null
+    myReview: string | null
+    reviews: Array<{
+      id: string
+      score: number
+      review: string | null
+      userId: string
+      authorName: string
+      createdAt: string
+    }>
   }
 }
 
@@ -143,6 +153,7 @@ export function isPostSummary(data: unknown): data is PostSummary {
     typeof data.authorName === "string" &&
     typeof data.title === "string" &&
     typeof data.viewsCounter === "number" &&
+    (data.averageRatings === null || typeof data.averageRatings === "number") &&
     (data.status === "DRAFT" || data.status === "PUBLISHED") &&
     isTime(data.publishedAt) &&
     (typeof data.createdAt === "string" || data.createdAt instanceof Date) &&
@@ -169,6 +180,9 @@ export function isPostDetail(data: unknown): data is PostDetail {
   return (
     "comments" in data &&
     Array.isArray(data.comments) &&
-    typeof data.rating.count === "number"
+    typeof data.rating.count === "number" &&
+    (data.rating.myReview === null ||
+      typeof data.rating.myReview === "string") &&
+    Array.isArray(data.rating.reviews)
   )
 }

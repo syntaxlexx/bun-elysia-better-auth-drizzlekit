@@ -89,9 +89,15 @@ export const postRoutes = new Elysia()
           await ratePost(
             await requireActiveUser(request),
             params.postId,
-            body.score
+            body.score,
+            body.review
           )
         )
       ),
-    { body: t.Object({ score: t.Number() }) }
+    {
+      body: t.Object({
+        score: t.Number(),
+        review: t.Optional(t.String()),
+      }),
+    }
   )

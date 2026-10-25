@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm"
 import {
   check,
+  doublePrecision,
   integer,
   jsonb,
   pgEnum,
@@ -98,6 +99,7 @@ export const posts = pgTable("posts", {
   title: text("title").notNull(),
   body: jsonb("body").$type<Array<Record<string, unknown>>>().notNull(),
   viewsCounter: integer("views_counter").notNull().default(0),
+  averageRatings: doublePrecision("average_ratings"),
   status: postStatus("status").notNull().default("DRAFT"),
   publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -136,6 +138,7 @@ export const ratings = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     score: integer("score").notNull(),
+    review: text("review"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

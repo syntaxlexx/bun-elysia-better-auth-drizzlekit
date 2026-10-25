@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { PostTable } from "@/components/post-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { isPostList } from "@/lib/records"
-import { getTreaty } from "../api.$"
+import { getTreaty } from "../../api.$"
 
-export const Route = createFileRoute("/posts/")({
+export const Route = createFileRoute("/(frontend)/posts/")({
   loader: async () => {
     const { api } = await getTreaty()
     const result = await api.posts.get()

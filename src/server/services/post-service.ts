@@ -141,23 +141,73 @@ async function findPost(postId: string): Promise<PostWithAuthor | undefined> {
   return first(rows)
 }
 
+function storedAverage(value: number | string | null | undefined) {
+  if (value === null || value === undefined) {
+    return null
+  }
+  const average = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(average) ? average : null
+}
+
 async function ratingFor(postId: string, actor: UserRow | null) {
-  const rows = await db
-    .select({ score: ratings.score, userId: ratings.userId })
+  const [postRows, reviewRows] = await Promise.all([
+    db
+      .select({ averageRatings: posts.averageRatings })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1),
+    db
+      .select({
+        id: ratings.id,
+        score: ratings.score,
+        review: ratings.review,
+        userId: ratings.userId,
+        createdAt: ratings.createdAt,
+        fname: users.fname,
+        lname: users.lname,
+      })
+      .from(ratings)
+      .innerJoin(users, eq(ratings.userId, users.id))
+      .where(eq(ratings.postId, postId))
+      .orderBy(desc(ratings.createdAt)),
+  ])
+  const mine = actor
+    ? reviewRows.find((row) => row.userId === actor.id)
+    : undefined
+  return {
+    average: storedAverage(first(postRows)?.averageRatings),
+    count: reviewRows.length,
+    mine: mine?.score ?? null,
+    myReview: mine?.review ?? null,
+    reviews: reviewRows.map((row) => ({
+      id: row.id,
+      score: row.score,
+      review: row.review,
+      userId: row.userId,
+      createdAt: row.createdAt,
+      author: {
+        id: row.userId,
+        fname: row.fname,
+        lname: row.lname,
+      },
+    })),
+  }
+}
+
+async function refreshAverageRatings(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  postId: string
+) {
+  const rows = await tx
+    .select({
+      average: sql<number | string | null>`avg(${ratings.score})::float8`,
+    })
     .from(ratings)
     .where(eq(ratings.postId, postId))
-  const count = rows.length
-  const mine = actor
-    ? (rows.find((row) => row.userId === actor.id)?.score ?? null)
-    : null
-  return {
-    average:
-      count === 0
-        ? null
-        : rows.reduce((sum, row) => sum + row.score, 0) / count,
-    count,
-    mine,
-  }
+  await tx
+    .update(posts)
+    .set({ averageRatings: storedAverage(first(rows)?.average) })
+    .where(eq(posts.id, postId))
 }
 
 async function commentsFor(postId: string) {
@@ -288,7 +338,7 @@ export async function getPost(actor: UserRow | null, postId: string) {
     throw missingPost()
   }
 
-  if (isPublic(row.post, now)) {
+  if (isPublic(row.post, now) && actor?.id !== row.post.authorId) {
     const updated = await db
       .update(posts)
       .set({ viewsCounter: sql`${posts.viewsCounter} + 1` })
@@ -342,7 +392,26 @@ export async function addComment(actor: UserRow, postId: string, body: string) {
   }
 }
 
-export async function ratePost(actor: UserRow, postId: string, score: number) {
+function assertReview(review: string | undefined) {
+  if (review === undefined) {
+    return undefined
+  }
+  const text = review.trim()
+  if (text.length > 2000) {
+    throw new ServiceError(422, {
+      ok: false,
+      message: "Keep the review under 2000 characters.",
+    })
+  }
+  return text.length === 0 ? null : text
+}
+
+export async function ratePost(
+  actor: UserRow,
+  postId: string,
+  score: number,
+  review?: string
+) {
   await readablePost(actor, postId)
   if (!Number.isInteger(score) || score < 1 || score > 5) {
     throw new ServiceError(422, {
@@ -350,14 +419,26 @@ export async function ratePost(actor: UserRow, postId: string, score: number) {
       message: "Choose a rating from 1 to 5.",
     })
   }
+  const text = assertReview(review)
 
-  await db
-    .insert(ratings)
-    .values({ postId, userId: actor.id, score })
-    .onConflictDoUpdate({
-      target: [ratings.postId, ratings.userId],
-      set: { score },
-    })
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(ratings)
+      .values({
+        postId,
+        userId: actor.id,
+        score,
+        review: text ?? null,
+      })
+      .onConflictDoUpdate({
+        target: [ratings.postId, ratings.userId],
+        set: {
+          score,
+          ...(text !== undefined ? { review: text } : {}),
+        },
+      })
+    await refreshAverageRatings(tx, postId)
+  })
 
   return ratingFor(postId, actor)
 }
