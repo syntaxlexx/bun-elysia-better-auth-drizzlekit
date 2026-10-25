@@ -21,4 +21,11 @@
     "VITE_PUSHER_HOST": "soketi.dukaloco.com",
     "VITE_PUSHER_PORT": "443",
   },
+  "hyperdrive": [
+    {
+      "binding": "PROD_DB",
+      "id": "685f853441624a87bdeaef66e4a1858f",
+      "localConnectionString": "postgres://postgres:postgres@127.0.0.1:5432/elysia_tanstart",
+    },
+  ],
 }
