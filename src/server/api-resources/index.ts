@@ -2,6 +2,7 @@ import { accountIssues } from "./account-issues.ts"
 import { comments } from "./comments.ts"
 import { posts } from "./posts.ts"
 import { ratings } from "./ratings.ts"
+import { rooms } from "./rooms.ts"
 import { users } from "./users.ts"
 
 export const resources = {
@@ -9,5 +10,6 @@ export const resources = {
   comments,
   posts,
   ratings,
+  rooms,
   users,
 }

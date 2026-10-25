@@ -1,22 +1,55 @@
 {
-  "editor.defaultFormatter": "oxc.oxc-vscode",
-  "[javascript]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode"
+  "files.watcherExclude": {
+    "**/routeTree.gen.ts": true,
+    "**/.tanstack/**": true,
+    "**/node_modules/**": true
   },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode"
+  "search.exclude": {
+    "**/routeTree.gen.ts": true,
+    "**/.tanstack/**": true,
+    "**/node_modules/**": true
   },
-  "[typescript]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode"
+  "files.readonlyInclude": {
+    "**/routeTree.gen.ts": true
   },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode"
+  "files.exclude": {
+    "**/.tanstack": true
   },
-  "oxc.disableNestedConfig": true,
-  "oxc.fmt.disableNestedConfig": true,
+  "cSpell.words": ["topbar", "ucwords"],
   "editor.formatOnSave": true,
-  "editor.formatOnSaveMode": "file",
   "editor.codeActionsOnSave": {
     "source.fixAll.oxc": "explicit"
-  }
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.oxc": "explicit",
+      "source.organizeImports": "always"
+    }
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.oxc": "explicit",
+      "source.organizeImports": "always"
+    }
+  },
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    }
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    }
+  },
+  "oxc.disableNestedConfig": false,
+  "oxc.fmt.disableNestedConfig": false,
+  "editor.formatOnSaveMode": "file"
 }

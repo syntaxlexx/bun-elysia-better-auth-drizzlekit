@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm"
 import {
   check,
   doublePrecision,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -152,6 +153,68 @@ export const ratings = pgTable(
   ]
 )
 
+export const rooms = pgTable(
+  "rooms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("rooms_name_lower_unique").on(sql`lower(${table.name})`),
+  ]
+)
+
+export const roomParticipants = pgTable(
+  "room_participants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("room_participants_room_user_unique").on(
+      table.roomId,
+      table.userId
+    ),
+  ]
+)
+
+export const roomMessages = pgTable(
+  "room_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("room_messages_room_created_idx").on(table.roomId, table.createdAt),
+  ]
+)
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   posts: many(posts),
@@ -161,6 +224,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   issuedAccountIssues: many(accountIssues, {
     relationName: "accountIssueActor",
   }),
+  createdRooms: many(rooms),
+  roomParticipants: many(roomParticipants),
+  roomMessages: many(roomMessages),
 }))
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -210,6 +276,40 @@ export const ratingsRelations = relations(ratings, ({ one }) => ({
   }),
   user: one(users, {
     fields: [ratings.userId],
+    references: [users.id],
+  }),
+}))
+
+export const roomsRelations = relations(rooms, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [rooms.createdBy],
+    references: [users.id],
+  }),
+  participants: many(roomParticipants),
+  messages: many(roomMessages),
+}))
+
+export const roomParticipantsRelations = relations(
+  roomParticipants,
+  ({ one }) => ({
+    room: one(rooms, {
+      fields: [roomParticipants.roomId],
+      references: [rooms.id],
+    }),
+    user: one(users, {
+      fields: [roomParticipants.userId],
+      references: [users.id],
+    }),
+  })
+)
+
+export const roomMessagesRelations = relations(roomMessages, ({ one }) => ({
+  room: one(rooms, {
+    fields: [roomMessages.roomId],
+    references: [rooms.id],
+  }),
+  author: one(users, {
+    fields: [roomMessages.authorId],
     references: [users.id],
   }),
 }))

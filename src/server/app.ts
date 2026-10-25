@@ -7,6 +7,8 @@ import { adminRoutes } from "./routes/admin.ts"
 import { authRoutes } from "./routes/auth.ts"
 import { avatarRoutes } from "./routes/avatars.ts"
 import { postRoutes } from "./routes/posts.ts"
+import { realtimeRoutes } from "./routes/realtime.ts"
+import { roomRoutes } from "./routes/rooms.ts"
 
 export const app = new Elysia({
   prefix: "/api",
@@ -17,6 +19,8 @@ export const app = new Elysia({
   .use(adminRoutes)
   .use(postRoutes)
   .use(avatarRoutes)
+  .use(roomRoutes)
+  .use(realtimeRoutes)
   .get("/ready", async () => {
     const rows = await db.execute<{ database: string }>(
       sql`select current_database() as database`

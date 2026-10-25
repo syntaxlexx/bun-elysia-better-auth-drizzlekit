@@ -31,6 +31,7 @@ function DashboardLayout() {
             Overview
           </ShellLink>
           <ShellLink to="/dashboard/posts">Posts</ShellLink>
+          <ShellLink to="/dashboard/chat">Chat</ShellLink>
           <ShellLink to="/dashboard/profile">Profile</ShellLink>
           <ShellLink to="/posts">Public posts</ShellLink>
           {user.role === "ADMIN" ? (

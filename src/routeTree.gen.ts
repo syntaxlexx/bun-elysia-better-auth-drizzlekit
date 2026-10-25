@@ -23,20 +23,24 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminPostsRouteImport } from './routes/admin/posts'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardChatRouteRouteImport } from './routes/dashboard/chat/route'
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
 import { Route as frontendPostsIndexRouteImport } from './routes/(frontend)/posts/index'
 import { Route as frontendPostsPostIdRouteImport } from './routes/(frontend)/posts/$postId'
 import { Route as AdminUsersIndexRouteImport } from './routes/admin/users/index'
 import { Route as AdminUsersUserIdRouteImport } from './routes/admin/users/$userId'
+import { Route as DashboardChatIndexRouteImport } from './routes/dashboard/chat/index'
+import { Route as DashboardChatRoomIdRouteImport } from './routes/dashboard/chat/$roomId'
 import { Route as DashboardPostsIndexRouteImport } from './routes/dashboard/posts/index'
-import { Route as DashboardPostsPostIdRouteImport } from './routes/dashboard/posts/$postId'
+import { Route as DashboardPostsPostIdRouteRouteImport } from './routes/dashboard/posts/$postId/route'
 import { Route as DashboardPostsNewRouteImport } from './routes/dashboard/posts/new'
 import { Route as AdminUsersUserIdIndexRouteImport } from './routes/admin/users/$userId/index'
 import { Route as AdminUsersUserIdIssuesRouteImport } from './routes/admin/users/$userId/issues'
 import { Route as AdminUsersUserIdPasswordRouteImport } from './routes/admin/users/$userId/password'
 import { Route as AdminUsersUserIdPostsRouteImport } from './routes/admin/users/$userId/posts'
 import { Route as AdminUsersUserIdRolesRouteImport } from './routes/admin/users/$userId/roles'
-import { Route as DashboardPostsPostIdEditRouteImport } from './routes/dashboard/posts/$postId_.edit'
+import { Route as DashboardPostsPostIdIndexRouteImport } from './routes/dashboard/posts/$postId/index'
+import { Route as DashboardPostsPostIdEditRouteImport } from './routes/dashboard/posts/$postId/edit'
 
 const authRouteRoute = authRouteRouteImport.update({
   id: '/(auth)',
@@ -106,6 +110,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardChatRouteRoute = DashboardChatRouteRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardProfileRoute = DashboardProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -131,16 +140,27 @@ const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
   path: '/users/$userId',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const DashboardChatIndexRoute = DashboardChatIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardChatRouteRoute,
+} as any)
+const DashboardChatRoomIdRoute = DashboardChatRoomIdRouteImport.update({
+  id: '/$roomId',
+  path: '/$roomId',
+  getParentRoute: () => DashboardChatRouteRoute,
+} as any)
 const DashboardPostsIndexRoute = DashboardPostsIndexRouteImport.update({
   id: '/posts/',
   path: '/posts/',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardPostsPostIdRoute = DashboardPostsPostIdRouteImport.update({
-  id: '/posts/$postId',
-  path: '/posts/$postId',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
+const DashboardPostsPostIdRouteRoute =
+  DashboardPostsPostIdRouteRouteImport.update({
+    id: '/posts/$postId',
+    path: '/posts/$postId',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardPostsNewRoute = DashboardPostsNewRouteImport.update({
   id: '/posts/new',
   path: '/posts/new',
@@ -172,16 +192,23 @@ const AdminUsersUserIdRolesRoute = AdminUsersUserIdRolesRouteImport.update({
   path: '/roles',
   getParentRoute: () => AdminUsersUserIdRoute,
 } as any)
+const DashboardPostsPostIdIndexRoute =
+  DashboardPostsPostIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardPostsPostIdRouteRoute,
+  } as any)
 const DashboardPostsPostIdEditRoute =
   DashboardPostsPostIdEditRouteImport.update({
-    id: '/posts/$postId_/edit',
-    path: '/posts/$postId/edit',
-    getParentRoute: () => DashboardRouteRoute,
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => DashboardPostsPostIdRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/dashboard/chat': typeof DashboardChatRouteRouteWithChildren
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
   '/about': typeof frontendAboutRoute
@@ -193,12 +220,14 @@ export interface FileRoutesByFullPath {
   '/': typeof frontendIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRouteRouteWithChildren
   '/posts/$postId': typeof frontendPostsPostIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRouteWithChildren
-  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
+  '/dashboard/chat/$roomId': typeof DashboardChatRoomIdRoute
   '/dashboard/posts/new': typeof DashboardPostsNewRoute
   '/posts/': typeof frontendPostsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/dashboard/chat/': typeof DashboardChatIndexRoute
   '/dashboard/posts/': typeof DashboardPostsIndexRoute
   '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
   '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
@@ -206,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
   '/dashboard/posts/$postId/edit': typeof DashboardPostsPostIdEditRoute
   '/admin/users/$userId/': typeof AdminUsersUserIdIndexRoute
+  '/dashboard/posts/$postId/': typeof DashboardPostsPostIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
@@ -220,10 +250,11 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/posts/$postId': typeof frontendPostsPostIdRoute
-  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
+  '/dashboard/chat/$roomId': typeof DashboardChatRoomIdRoute
   '/dashboard/posts/new': typeof DashboardPostsNewRoute
   '/posts': typeof frontendPostsIndexRoute
   '/admin/users': typeof AdminUsersIndexRoute
+  '/dashboard/chat': typeof DashboardChatIndexRoute
   '/dashboard/posts': typeof DashboardPostsIndexRoute
   '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
   '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
@@ -231,6 +262,7 @@ export interface FileRoutesByTo {
   '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
   '/dashboard/posts/$postId/edit': typeof DashboardPostsPostIdEditRoute
   '/admin/users/$userId': typeof AdminUsersUserIdIndexRoute
+  '/dashboard/posts/$postId': typeof DashboardPostsPostIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -238,6 +270,7 @@ export interface FileRoutesById {
   '/(frontend)': typeof frontendRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/dashboard/chat': typeof DashboardChatRouteRouteWithChildren
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
   '/(frontend)/about': typeof frontendAboutRoute
@@ -249,25 +282,29 @@ export interface FileRoutesById {
   '/(frontend)/': typeof frontendIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRouteRouteWithChildren
   '/(frontend)/posts/$postId': typeof frontendPostsPostIdRoute
   '/admin/users/$userId': typeof AdminUsersUserIdRouteWithChildren
-  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
+  '/dashboard/chat/$roomId': typeof DashboardChatRoomIdRoute
   '/dashboard/posts/new': typeof DashboardPostsNewRoute
   '/(frontend)/posts/': typeof frontendPostsIndexRoute
   '/admin/users/': typeof AdminUsersIndexRoute
+  '/dashboard/chat/': typeof DashboardChatIndexRoute
   '/dashboard/posts/': typeof DashboardPostsIndexRoute
   '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
   '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
   '/admin/users/$userId/posts': typeof AdminUsersUserIdPostsRoute
   '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
-  '/dashboard/posts/$postId_/edit': typeof DashboardPostsPostIdEditRoute
+  '/dashboard/posts/$postId/edit': typeof DashboardPostsPostIdEditRoute
   '/admin/users/$userId/': typeof AdminUsersUserIdIndexRoute
+  '/dashboard/posts/$postId/': typeof DashboardPostsPostIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/admin'
     | '/dashboard'
+    | '/dashboard/chat'
     | '/login'
     | '/register'
     | '/about'
@@ -279,12 +316,14 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/'
     | '/dashboard/'
+    | '/dashboard/posts/$postId'
     | '/posts/$postId'
     | '/admin/users/$userId'
-    | '/dashboard/posts/$postId'
+    | '/dashboard/chat/$roomId'
     | '/dashboard/posts/new'
     | '/posts/'
     | '/admin/users/'
+    | '/dashboard/chat/'
     | '/dashboard/posts/'
     | '/admin/users/$userId/issues'
     | '/admin/users/$userId/password'
@@ -292,6 +331,7 @@ export interface FileRouteTypes {
     | '/admin/users/$userId/roles'
     | '/dashboard/posts/$postId/edit'
     | '/admin/users/$userId/'
+    | '/dashboard/posts/$postId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -306,10 +346,11 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/posts/$postId'
-    | '/dashboard/posts/$postId'
+    | '/dashboard/chat/$roomId'
     | '/dashboard/posts/new'
     | '/posts'
     | '/admin/users'
+    | '/dashboard/chat'
     | '/dashboard/posts'
     | '/admin/users/$userId/issues'
     | '/admin/users/$userId/password'
@@ -317,12 +358,14 @@ export interface FileRouteTypes {
     | '/admin/users/$userId/roles'
     | '/dashboard/posts/$postId/edit'
     | '/admin/users/$userId'
+    | '/dashboard/posts/$postId'
   id:
     | '__root__'
     | '/(auth)'
     | '/(frontend)'
     | '/admin'
     | '/dashboard'
+    | '/dashboard/chat'
     | '/(auth)/login'
     | '/(auth)/register'
     | '/(frontend)/about'
@@ -334,19 +377,22 @@ export interface FileRouteTypes {
     | '/(frontend)/'
     | '/admin/'
     | '/dashboard/'
+    | '/dashboard/posts/$postId'
     | '/(frontend)/posts/$postId'
     | '/admin/users/$userId'
-    | '/dashboard/posts/$postId'
+    | '/dashboard/chat/$roomId'
     | '/dashboard/posts/new'
     | '/(frontend)/posts/'
     | '/admin/users/'
+    | '/dashboard/chat/'
     | '/dashboard/posts/'
     | '/admin/users/$userId/issues'
     | '/admin/users/$userId/password'
     | '/admin/users/$userId/posts'
     | '/admin/users/$userId/roles'
-    | '/dashboard/posts/$postId_/edit'
+    | '/dashboard/posts/$postId/edit'
     | '/admin/users/$userId/'
+    | '/dashboard/posts/$postId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -457,6 +503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/chat': {
+      id: '/dashboard/chat'
+      path: '/chat'
+      fullPath: '/dashboard/chat'
+      preLoaderRoute: typeof DashboardChatRouteRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/profile': {
       id: '/dashboard/profile'
       path: '/profile'
@@ -492,6 +545,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersUserIdRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/dashboard/chat/': {
+      id: '/dashboard/chat/'
+      path: '/'
+      fullPath: '/dashboard/chat/'
+      preLoaderRoute: typeof DashboardChatIndexRouteImport
+      parentRoute: typeof DashboardChatRouteRoute
+    }
+    '/dashboard/chat/$roomId': {
+      id: '/dashboard/chat/$roomId'
+      path: '/$roomId'
+      fullPath: '/dashboard/chat/$roomId'
+      preLoaderRoute: typeof DashboardChatRoomIdRouteImport
+      parentRoute: typeof DashboardChatRouteRoute
+    }
     '/dashboard/posts/': {
       id: '/dashboard/posts/'
       path: '/posts'
@@ -503,7 +570,7 @@ declare module '@tanstack/react-router' {
       id: '/dashboard/posts/$postId'
       path: '/posts/$postId'
       fullPath: '/dashboard/posts/$postId'
-      preLoaderRoute: typeof DashboardPostsPostIdRouteImport
+      preLoaderRoute: typeof DashboardPostsPostIdRouteRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/posts/new': {
@@ -548,12 +615,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersUserIdRolesRouteImport
       parentRoute: typeof AdminUsersUserIdRoute
     }
-    '/dashboard/posts/$postId_/edit': {
-      id: '/dashboard/posts/$postId_/edit'
-      path: '/posts/$postId/edit'
+    '/dashboard/posts/$postId/': {
+      id: '/dashboard/posts/$postId/'
+      path: '/'
+      fullPath: '/dashboard/posts/$postId/'
+      preLoaderRoute: typeof DashboardPostsPostIdIndexRouteImport
+      parentRoute: typeof DashboardPostsPostIdRouteRoute
+    }
+    '/dashboard/posts/$postId/edit': {
+      id: '/dashboard/posts/$postId/edit'
+      path: '/edit'
       fullPath: '/dashboard/posts/$postId/edit'
       preLoaderRoute: typeof DashboardPostsPostIdEditRouteImport
-      parentRoute: typeof DashboardRouteRoute
+      parentRoute: typeof DashboardPostsPostIdRouteRoute
     }
   }
 }
@@ -631,22 +705,51 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
+interface DashboardChatRouteRouteChildren {
+  DashboardChatRoomIdRoute: typeof DashboardChatRoomIdRoute
+  DashboardChatIndexRoute: typeof DashboardChatIndexRoute
+}
+
+const DashboardChatRouteRouteChildren: DashboardChatRouteRouteChildren = {
+  DashboardChatRoomIdRoute: DashboardChatRoomIdRoute,
+  DashboardChatIndexRoute: DashboardChatIndexRoute,
+}
+
+const DashboardChatRouteRouteWithChildren =
+  DashboardChatRouteRoute._addFileChildren(DashboardChatRouteRouteChildren)
+
+interface DashboardPostsPostIdRouteRouteChildren {
+  DashboardPostsPostIdEditRoute: typeof DashboardPostsPostIdEditRoute
+  DashboardPostsPostIdIndexRoute: typeof DashboardPostsPostIdIndexRoute
+}
+
+const DashboardPostsPostIdRouteRouteChildren: DashboardPostsPostIdRouteRouteChildren =
+  {
+    DashboardPostsPostIdEditRoute: DashboardPostsPostIdEditRoute,
+    DashboardPostsPostIdIndexRoute: DashboardPostsPostIdIndexRoute,
+  }
+
+const DashboardPostsPostIdRouteRouteWithChildren =
+  DashboardPostsPostIdRouteRoute._addFileChildren(
+    DashboardPostsPostIdRouteRouteChildren,
+  )
+
 interface DashboardRouteRouteChildren {
+  DashboardChatRouteRoute: typeof DashboardChatRouteRouteWithChildren
   DashboardProfileRoute: typeof DashboardProfileRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
-  DashboardPostsPostIdRoute: typeof DashboardPostsPostIdRoute
+  DashboardPostsPostIdRouteRoute: typeof DashboardPostsPostIdRouteRouteWithChildren
   DashboardPostsNewRoute: typeof DashboardPostsNewRoute
   DashboardPostsIndexRoute: typeof DashboardPostsIndexRoute
-  DashboardPostsPostIdEditRoute: typeof DashboardPostsPostIdEditRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardChatRouteRoute: DashboardChatRouteRouteWithChildren,
   DashboardProfileRoute: DashboardProfileRoute,
   DashboardIndexRoute: DashboardIndexRoute,
-  DashboardPostsPostIdRoute: DashboardPostsPostIdRoute,
+  DashboardPostsPostIdRouteRoute: DashboardPostsPostIdRouteRouteWithChildren,
   DashboardPostsNewRoute: DashboardPostsNewRoute,
   DashboardPostsIndexRoute: DashboardPostsIndexRoute,
-  DashboardPostsPostIdEditRoute: DashboardPostsPostIdEditRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

@@ -38,6 +38,19 @@ function DashboardHome() {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>Chat</CardTitle>
+          <CardDescription>
+            Join a public room and talk with other members.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <Button nativeButton={false} render={<Link to="/dashboard/chat" />}>
+            Open chat
+          </Button>
+        </CardFooter>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Profile</CardTitle>
           <CardDescription>
             Update your name, contact details, photo, and password.

@@ -7,10 +7,12 @@ import "@blocknote/mantine/style.css"
 export function PostEditorClient({
   initial,
   editable = true,
+  plain = false,
   onChange,
 }: {
   initial: Array<Record<string, unknown>>
   editable?: boolean
+  plain?: boolean
   onChange?: (blocks: Array<Record<string, unknown>>) => void
 }) {
   const onChangeRef = useRef(onChange)
@@ -25,11 +27,24 @@ export function PostEditorClient({
   }, [editor])
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-input bg-background">
+    <div
+      className={
+        plain
+          ? "folio-prose"
+          : "overflow-hidden rounded-2xl border border-input bg-background"
+      }
+    >
       <BlockNoteView
         editor={editor}
         editable={editable}
         theme="light"
+        formattingToolbar={plain ? false : undefined}
+        linkToolbar={plain ? false : undefined}
+        slashMenu={plain ? false : undefined}
+        sideMenu={plain ? false : undefined}
+        filePanel={plain ? false : undefined}
+        tableHandles={plain ? false : undefined}
+        comments={plain ? false : undefined}
         onChange={() => {
           onChangeRef.current?.(editor.document)
         }}

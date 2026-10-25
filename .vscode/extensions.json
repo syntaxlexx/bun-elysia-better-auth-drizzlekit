@@ -1,3 +1,16 @@
 {
-  "recommendations": ["VoidZero.vite-plus-extension-pack"]
+  "recommendations": [
+    "ahamed.close-tabs-to-left",
+    "christopherstyles.html-entities",
+    "mushan.vscode-paste-image",
+    "qcz.restart-ts-server-button",
+    "bradlc.vscode-tailwindcss",
+    "wayou.vscode-todo-highlight",
+    "fabiospampinato.vscode-todo-plus",
+    "formulahendry.auto-close-tag",
+    "codeandstuff.package-json-upgrade",
+    "VoidZero.vite-plus-extension-pack",
+    "oxc.oxc-vscode"
+  ],
+  "unwantedRecommendations": []
 }

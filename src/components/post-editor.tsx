@@ -4,6 +4,7 @@ import type { ComponentType } from "react"
 type EditorProps = {
   initial: Array<Record<string, unknown>>
   editable?: boolean
+  plain?: boolean
   onChange?: (blocks: Array<Record<string, unknown>>) => void
 }
 
@@ -25,7 +26,11 @@ export function PostEditor(props: EditorProps) {
   }, [])
 
   if (!editor) {
-    return <div className="min-h-64 rounded-2xl bg-muted" />
+    return (
+      <div
+        className={props.plain ? "min-h-40" : "min-h-64 rounded-2xl bg-muted"}
+      />
+    )
   }
 
   const Editor = editor.Component
