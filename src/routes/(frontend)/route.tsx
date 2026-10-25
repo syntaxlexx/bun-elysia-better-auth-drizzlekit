@@ -25,7 +25,9 @@ function FrontendLayout() {
     <div className="flex min-h-svh flex-col">
       <SiteHeader user={user} />
       <div className="flex-1">
-        <Outlet />
+        <div className="container">
+          <Outlet />
+        </div>
       </div>
       <SiteFooter />
     </div>

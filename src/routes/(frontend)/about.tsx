@@ -38,7 +38,7 @@ const principles = [
 
 function AboutPage() {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 py-16 lg:py-24">
+    <main className="container flex flex-col gap-16 py-16 lg:py-24">
       <header className="flex max-w-3xl flex-col gap-4">
         <p className="text-sm font-medium text-muted-foreground">About us</p>
         <h1 className="font-heading text-4xl font-medium tracking-tight text-balance sm:text-5xl">

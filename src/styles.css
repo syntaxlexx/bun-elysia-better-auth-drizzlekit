@@ -118,6 +118,21 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@utility container {
+  margin-inline: auto;
+  max-width: var(--container-6xl);
+  padding-inline: 1rem;
+}
+
+.folio-prose .bn-container,
+.folio-prose .bn-editor {
+  background: transparent;
+}
+
+.folio-prose .bn-editor {
+  padding-inline: 0;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

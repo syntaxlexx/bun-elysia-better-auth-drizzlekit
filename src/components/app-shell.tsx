@@ -51,6 +51,7 @@ export function ShellLink({
   to:
     | "/"
     | "/dashboard"
+    | "/dashboard/chat"
     | "/dashboard/posts"
     | "/dashboard/profile"
     | "/posts"

@@ -1,4 +1,3 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router"
 import { PostEditor } from "@/components/post-editor"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,8 +10,9 @@ import {
 } from "@/components/ui/card"
 import { formatTime, isPostDetail, postState } from "@/lib/records"
 import { getTreaty } from "@/routes/api.$"
+import { createFileRoute, Link, notFound } from "@tanstack/react-router"
 
-export const Route = createFileRoute("/dashboard/posts/$postId")({
+export const Route = createFileRoute("/dashboard/posts/$postId/")({
   loader: async ({ params }) => {
     const { api } = await getTreaty()
     const result = await api.posts({ postId: params.postId }).get()
