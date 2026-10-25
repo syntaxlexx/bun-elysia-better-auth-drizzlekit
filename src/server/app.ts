@@ -2,11 +2,21 @@ import "@tanstack/react-start/server-only"
 import { sql } from "drizzle-orm"
 import { Elysia } from "elysia"
 import { db } from "./db/index.ts"
+import { accountRoutes } from "./routes/account.ts"
+import { adminRoutes } from "./routes/admin.ts"
+import { authRoutes } from "./routes/auth.ts"
+import { avatarRoutes } from "./routes/avatars.ts"
+import { postRoutes } from "./routes/posts.ts"
 
 export const app = new Elysia({
   prefix: "/api",
 })
   .get("/", () => "Hello Elysia!")
+  .use(authRoutes)
+  .use(accountRoutes)
+  .use(adminRoutes)
+  .use(postRoutes)
+  .use(avatarRoutes)
   .get("/ready", async () => {
     const rows = await db.execute<{ database: string }>(
       sql`select current_database() as database`

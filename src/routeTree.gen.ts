@@ -10,42 +10,312 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountStatusRouteImport } from './routes/account-status'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PostsRouteImport } from './routes/posts'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminPostsRouteImport } from './routes/admin/posts'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
+import { Route as PostsIndexRouteImport } from './routes/posts/index'
+import { Route as PostsPostIdRouteImport } from './routes/posts/$postId'
+import { Route as AdminUsersIndexRouteImport } from './routes/admin/users/index'
+import { Route as AdminUsersUserIdRouteImport } from './routes/admin/users/$userId'
+import { Route as DashboardPostsIndexRouteImport } from './routes/dashboard/posts/index'
+import { Route as DashboardPostsPostIdRouteImport } from './routes/dashboard/posts/$postId'
+import { Route as DashboardPostsNewRouteImport } from './routes/dashboard/posts/new'
+import { Route as AdminUsersUserIdIndexRouteImport } from './routes/admin/users/$userId/index'
+import { Route as AdminUsersUserIdIssuesRouteImport } from './routes/admin/users/$userId/issues'
+import { Route as AdminUsersUserIdPasswordRouteImport } from './routes/admin/users/$userId/password'
+import { Route as AdminUsersUserIdPostsRouteImport } from './routes/admin/users/$userId/posts'
+import { Route as AdminUsersUserIdRolesRouteImport } from './routes/admin/users/$userId/roles'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountStatusRoute = AccountStatusRouteImport.update({
+  id: '/account-status',
+  path: '/account-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostsRoute = PostsRouteImport.update({
+  id: '/posts',
+  path: '/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPostsRoute = AdminPostsRouteImport.update({
+  id: '/posts',
+  path: '/posts',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardProfileRoute = DashboardProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const PostsIndexRoute = PostsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PostsRoute,
+} as any)
+const PostsPostIdRoute = PostsPostIdRouteImport.update({
+  id: '/$postId',
+  path: '/$postId',
+  getParentRoute: () => PostsRoute,
+} as any)
+const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersUserIdRoute = AdminUsersUserIdRouteImport.update({
+  id: '/users/$userId',
+  path: '/users/$userId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const DashboardPostsIndexRoute = DashboardPostsIndexRouteImport.update({
+  id: '/posts/',
+  path: '/posts/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPostsPostIdRoute = DashboardPostsPostIdRouteImport.update({
+  id: '/posts/$postId',
+  path: '/posts/$postId',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPostsNewRoute = DashboardPostsNewRouteImport.update({
+  id: '/posts/new',
+  path: '/posts/new',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const AdminUsersUserIdIndexRoute = AdminUsersUserIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminUsersUserIdRoute,
+} as any)
+const AdminUsersUserIdIssuesRoute = AdminUsersUserIdIssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => AdminUsersUserIdRoute,
+} as any)
+const AdminUsersUserIdPasswordRoute =
+  AdminUsersUserIdPasswordRouteImport.update({
+    id: '/password',
+    path: '/password',
+    getParentRoute: () => AdminUsersUserIdRoute,
+  } as any)
+const AdminUsersUserIdPostsRoute = AdminUsersUserIdPostsRouteImport.update({
+  id: '/posts',
+  path: '/posts',
+  getParentRoute: () => AdminUsersUserIdRoute,
+} as any)
+const AdminUsersUserIdRolesRoute = AdminUsersUserIdRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AdminUsersUserIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account-status': typeof AccountStatusRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/login': typeof LoginRoute
+  '/posts': typeof PostsRouteWithChildren
+  '/register': typeof RegisterRoute
+  '/admin/posts': typeof AdminPostsRoute
   '/api/$': typeof ApiSplatRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/posts/$postId': typeof PostsPostIdRoute
+  '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/posts/': typeof PostsIndexRoute
+  '/admin/users/$userId': typeof AdminUsersUserIdRouteWithChildren
+  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
+  '/dashboard/posts/new': typeof DashboardPostsNewRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/dashboard/posts/': typeof DashboardPostsIndexRoute
+  '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
+  '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
+  '/admin/users/$userId/posts': typeof AdminUsersUserIdPostsRoute
+  '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
+  '/admin/users/$userId/': typeof AdminUsersUserIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account-status': typeof AccountStatusRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/admin/posts': typeof AdminPostsRoute
   '/api/$': typeof ApiSplatRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/posts/$postId': typeof PostsPostIdRoute
+  '/admin': typeof AdminIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/posts': typeof PostsIndexRoute
+  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
+  '/dashboard/posts/new': typeof DashboardPostsNewRoute
+  '/admin/users': typeof AdminUsersIndexRoute
+  '/dashboard/posts': typeof DashboardPostsIndexRoute
+  '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
+  '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
+  '/admin/users/$userId/posts': typeof AdminUsersUserIdPostsRoute
+  '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
+  '/admin/users/$userId': typeof AdminUsersUserIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account-status': typeof AccountStatusRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/login': typeof LoginRoute
+  '/posts': typeof PostsRouteWithChildren
+  '/register': typeof RegisterRoute
+  '/admin/posts': typeof AdminPostsRoute
   '/api/$': typeof ApiSplatRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/posts/$postId': typeof PostsPostIdRoute
+  '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/posts/': typeof PostsIndexRoute
+  '/admin/users/$userId': typeof AdminUsersUserIdRouteWithChildren
+  '/dashboard/posts/$postId': typeof DashboardPostsPostIdRoute
+  '/dashboard/posts/new': typeof DashboardPostsNewRoute
+  '/admin/users/': typeof AdminUsersIndexRoute
+  '/dashboard/posts/': typeof DashboardPostsIndexRoute
+  '/admin/users/$userId/issues': typeof AdminUsersUserIdIssuesRoute
+  '/admin/users/$userId/password': typeof AdminUsersUserIdPasswordRoute
+  '/admin/users/$userId/posts': typeof AdminUsersUserIdPostsRoute
+  '/admin/users/$userId/roles': typeof AdminUsersUserIdRolesRoute
+  '/admin/users/$userId/': typeof AdminUsersUserIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/$'
+  fullPaths:
+    | '/'
+    | '/account-status'
+    | '/admin'
+    | '/dashboard'
+    | '/login'
+    | '/posts'
+    | '/register'
+    | '/admin/posts'
+    | '/api/$'
+    | '/dashboard/profile'
+    | '/posts/$postId'
+    | '/admin/'
+    | '/dashboard/'
+    | '/posts/'
+    | '/admin/users/$userId'
+    | '/dashboard/posts/$postId'
+    | '/dashboard/posts/new'
+    | '/admin/users/'
+    | '/dashboard/posts/'
+    | '/admin/users/$userId/issues'
+    | '/admin/users/$userId/password'
+    | '/admin/users/$userId/posts'
+    | '/admin/users/$userId/roles'
+    | '/admin/users/$userId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/$'
-  id: '__root__' | '/' | '/api/$'
+  to:
+    | '/'
+    | '/account-status'
+    | '/login'
+    | '/register'
+    | '/admin/posts'
+    | '/api/$'
+    | '/dashboard/profile'
+    | '/posts/$postId'
+    | '/admin'
+    | '/dashboard'
+    | '/posts'
+    | '/dashboard/posts/$postId'
+    | '/dashboard/posts/new'
+    | '/admin/users'
+    | '/dashboard/posts'
+    | '/admin/users/$userId/issues'
+    | '/admin/users/$userId/password'
+    | '/admin/users/$userId/posts'
+    | '/admin/users/$userId/roles'
+    | '/admin/users/$userId'
+  id:
+    | '__root__'
+    | '/'
+    | '/account-status'
+    | '/admin'
+    | '/dashboard'
+    | '/login'
+    | '/posts'
+    | '/register'
+    | '/admin/posts'
+    | '/api/$'
+    | '/dashboard/profile'
+    | '/posts/$postId'
+    | '/admin/'
+    | '/dashboard/'
+    | '/posts/'
+    | '/admin/users/$userId'
+    | '/dashboard/posts/$postId'
+    | '/dashboard/posts/new'
+    | '/admin/users/'
+    | '/dashboard/posts/'
+    | '/admin/users/$userId/issues'
+    | '/admin/users/$userId/password'
+    | '/admin/users/$userId/posts'
+    | '/admin/users/$userId/roles'
+    | '/admin/users/$userId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountStatusRoute: typeof AccountStatusRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  DashboardRoute: typeof DashboardRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  PostsRoute: typeof PostsRouteWithChildren
+  RegisterRoute: typeof RegisterRoute
   ApiSplatRoute: typeof ApiSplatRoute
 }
 
@@ -58,6 +328,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account-status': {
+      id: '/account-status'
+      path: '/account-status'
+      fullPath: '/account-status'
+      preLoaderRoute: typeof AccountStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/posts': {
+      id: '/posts'
+      path: '/posts'
+      fullPath: '/posts'
+      preLoaderRoute: typeof PostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/posts': {
+      id: '/admin/posts'
+      path: '/posts'
+      fullPath: '/admin/posts'
+      preLoaderRoute: typeof AdminPostsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/api/$': {
       id: '/api/$'
       path: '/api/$'
@@ -65,11 +391,182 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/profile': {
+      id: '/dashboard/profile'
+      path: '/profile'
+      fullPath: '/dashboard/profile'
+      preLoaderRoute: typeof DashboardProfileRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/posts/': {
+      id: '/posts/'
+      path: '/'
+      fullPath: '/posts/'
+      preLoaderRoute: typeof PostsIndexRouteImport
+      parentRoute: typeof PostsRoute
+    }
+    '/posts/$postId': {
+      id: '/posts/$postId'
+      path: '/$postId'
+      fullPath: '/posts/$postId'
+      preLoaderRoute: typeof PostsPostIdRouteImport
+      parentRoute: typeof PostsRoute
+    }
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AdminUsersIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users/$userId': {
+      id: '/admin/users/$userId'
+      path: '/users/$userId'
+      fullPath: '/admin/users/$userId'
+      preLoaderRoute: typeof AdminUsersUserIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/dashboard/posts/': {
+      id: '/dashboard/posts/'
+      path: '/posts'
+      fullPath: '/dashboard/posts/'
+      preLoaderRoute: typeof DashboardPostsIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/posts/$postId': {
+      id: '/dashboard/posts/$postId'
+      path: '/posts/$postId'
+      fullPath: '/dashboard/posts/$postId'
+      preLoaderRoute: typeof DashboardPostsPostIdRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/posts/new': {
+      id: '/dashboard/posts/new'
+      path: '/posts/new'
+      fullPath: '/dashboard/posts/new'
+      preLoaderRoute: typeof DashboardPostsNewRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/admin/users/$userId/': {
+      id: '/admin/users/$userId/'
+      path: '/'
+      fullPath: '/admin/users/$userId/'
+      preLoaderRoute: typeof AdminUsersUserIdIndexRouteImport
+      parentRoute: typeof AdminUsersUserIdRoute
+    }
+    '/admin/users/$userId/issues': {
+      id: '/admin/users/$userId/issues'
+      path: '/issues'
+      fullPath: '/admin/users/$userId/issues'
+      preLoaderRoute: typeof AdminUsersUserIdIssuesRouteImport
+      parentRoute: typeof AdminUsersUserIdRoute
+    }
+    '/admin/users/$userId/password': {
+      id: '/admin/users/$userId/password'
+      path: '/password'
+      fullPath: '/admin/users/$userId/password'
+      preLoaderRoute: typeof AdminUsersUserIdPasswordRouteImport
+      parentRoute: typeof AdminUsersUserIdRoute
+    }
+    '/admin/users/$userId/posts': {
+      id: '/admin/users/$userId/posts'
+      path: '/posts'
+      fullPath: '/admin/users/$userId/posts'
+      preLoaderRoute: typeof AdminUsersUserIdPostsRouteImport
+      parentRoute: typeof AdminUsersUserIdRoute
+    }
+    '/admin/users/$userId/roles': {
+      id: '/admin/users/$userId/roles'
+      path: '/roles'
+      fullPath: '/admin/users/$userId/roles'
+      preLoaderRoute: typeof AdminUsersUserIdRolesRouteImport
+      parentRoute: typeof AdminUsersUserIdRoute
+    }
   }
 }
 
+interface AdminUsersUserIdRouteChildren {
+  AdminUsersUserIdIssuesRoute: typeof AdminUsersUserIdIssuesRoute
+  AdminUsersUserIdPasswordRoute: typeof AdminUsersUserIdPasswordRoute
+  AdminUsersUserIdPostsRoute: typeof AdminUsersUserIdPostsRoute
+  AdminUsersUserIdRolesRoute: typeof AdminUsersUserIdRolesRoute
+  AdminUsersUserIdIndexRoute: typeof AdminUsersUserIdIndexRoute
+}
+
+const AdminUsersUserIdRouteChildren: AdminUsersUserIdRouteChildren = {
+  AdminUsersUserIdIssuesRoute: AdminUsersUserIdIssuesRoute,
+  AdminUsersUserIdPasswordRoute: AdminUsersUserIdPasswordRoute,
+  AdminUsersUserIdPostsRoute: AdminUsersUserIdPostsRoute,
+  AdminUsersUserIdRolesRoute: AdminUsersUserIdRolesRoute,
+  AdminUsersUserIdIndexRoute: AdminUsersUserIdIndexRoute,
+}
+
+const AdminUsersUserIdRouteWithChildren =
+  AdminUsersUserIdRoute._addFileChildren(AdminUsersUserIdRouteChildren)
+
+interface AdminRouteChildren {
+  AdminPostsRoute: typeof AdminPostsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminUsersUserIdRoute: typeof AdminUsersUserIdRouteWithChildren
+  AdminUsersIndexRoute: typeof AdminUsersIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminPostsRoute: AdminPostsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminUsersUserIdRoute: AdminUsersUserIdRouteWithChildren,
+  AdminUsersIndexRoute: AdminUsersIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface DashboardRouteChildren {
+  DashboardProfileRoute: typeof DashboardProfileRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardPostsPostIdRoute: typeof DashboardPostsPostIdRoute
+  DashboardPostsNewRoute: typeof DashboardPostsNewRoute
+  DashboardPostsIndexRoute: typeof DashboardPostsIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardProfileRoute: DashboardProfileRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardPostsPostIdRoute: DashboardPostsPostIdRoute,
+  DashboardPostsNewRoute: DashboardPostsNewRoute,
+  DashboardPostsIndexRoute: DashboardPostsIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
+interface PostsRouteChildren {
+  PostsPostIdRoute: typeof PostsPostIdRoute
+  PostsIndexRoute: typeof PostsIndexRoute
+}
+
+const PostsRouteChildren: PostsRouteChildren = {
+  PostsPostIdRoute: PostsPostIdRoute,
+  PostsIndexRoute: PostsIndexRoute,
+}
+
+const PostsRouteWithChildren = PostsRoute._addFileChildren(PostsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountStatusRoute: AccountStatusRoute,
+  AdminRoute: AdminRouteWithChildren,
+  DashboardRoute: DashboardRouteWithChildren,
+  LoginRoute: LoginRoute,
+  PostsRoute: PostsRouteWithChildren,
+  RegisterRoute: RegisterRoute,
   ApiSplatRoute: ApiSplatRoute,
 }
 export const routeTree = rootRouteImport

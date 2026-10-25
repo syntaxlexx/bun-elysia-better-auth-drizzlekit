@@ -26,7 +26,19 @@ export const Route = createFileRoute("/api/$")({
 
 export const getTreaty = createIsomorphicFn()
   .server(async () => {
-    const { app } = await import("@/server/app")
-    return { api: treaty(app).api }
+    const [{ app }, { getRequest }] = await Promise.all([
+      import("@/server/app"),
+      import("@tanstack/react-start/server"),
+    ])
+    const cookie = getRequest().headers.get("cookie")
+    return {
+      api: treaty(app, {
+        headers: cookie ? { cookie } : undefined,
+      }).api,
+    }
   })
-  .client(() => ({ api: treaty<App>(window.location.origin).api }))
+  .client(() => ({
+    api: treaty<App>(window.location.origin, {
+      fetch: { credentials: "include" },
+    }).api,
+  }))
