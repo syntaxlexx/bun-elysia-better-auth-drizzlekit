@@ -8,24 +8,48 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { getTreaty } from "./api.$"
 
-export const Route = createFileRoute("/")({ component: App })
+export const Route = createFileRoute("/")({
+  component: App,
+  loader: async () => {
+    const api = getTreaty()
+    const [hello, ready] = await Promise.all([api.get(), api.ready.get()])
+
+    if (hello.error) {
+      throw new Error("Elysia request failed")
+    }
+    if (ready.error) {
+      throw new Error("Database ready check failed")
+    }
+
+    return {
+      hello: hello.data,
+      database: ready.data.database,
+    }
+  },
+})
 
 function App() {
+  const { hello, database } = Route.useLoaderData()
+
   return (
-    <div className="min-h-svh">
+    <div className="min-h-svh p-6">
       <Card className="max-w-sm">
         <CardHeader>
-          <CardTitle>Project Overview</CardTitle>
+          <CardTitle>Elysia is ready</CardTitle>
           <CardDescription>
-            Track progress and recent activity for your TanStack Start app.
+            TanStack Start is serving Elysia on /api, backed by Postgres.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          Your design system is ready. Start building your next component.
+        <CardContent className="flex flex-col gap-2">
+          <p>{hello}</p>
+          <p>Database: {database}</p>
         </CardContent>
         <CardFooter>
-          <Button>Button</Button>
+          <Button nativeButton={false} render={<a href="/api" />}>
+            Open /api
+          </Button>
         </CardFooter>
       </Card>
     </div>
