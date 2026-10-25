@@ -8,39 +8,15 @@ type UserRow = typeof users.$inferSelect
 type PostRow = typeof posts.$inferSelect
 type PostStatus = PostRow["status"]
 
-export type PostSummary = {
+type AuthorName = {
   id: string
-  authorId: string
-  authorName: string
-  title: string
-  viewsCounter: number
-  status: PostStatus
-  publishedAt: string | null
-  createdAt: string
-  updatedAt: string
+  fname: string
+  lname: string
 }
 
-export type PostRecord = PostSummary & {
-  body: Array<Record<string, unknown>>
-}
-
-export type PostComment = {
-  id: string
-  body: string
-  authorId: string
-  authorName: string
-  createdAt: string
-}
-
-export type PostRating = {
-  average: number | null
-  count: number
-  mine: number | null
-}
-
-export type PostDetail = PostRecord & {
-  comments: Array<PostComment>
-  rating: PostRating
+type PostWithAuthor = {
+  post: PostRow
+  author: AuthorName
 }
 
 type PostInput = {
@@ -50,21 +26,11 @@ type PostInput = {
   publishedAt?: string | null
 }
 
-type JoinedPost = {
-  post: PostRow
-  fname: string
-  lname: string
-}
-
 function first<T>(rows: ReadonlyArray<T>): T | undefined {
   if (rows.length === 0) {
     return undefined
   }
   return rows[0]
-}
-
-function iso(value: Date | null) {
-  return value ? value.toISOString() : null
 }
 
 function missingPost() {
@@ -155,48 +121,27 @@ function assertInput(input: PostInput) {
   }
 }
 
-function toSummary(row: JoinedPost): PostSummary {
-  return {
-    id: row.post.id,
-    authorId: row.post.authorId,
-    authorName: `${row.fname} ${row.lname}`,
-    title: row.post.title,
-    viewsCounter: row.post.viewsCounter,
-    status: row.post.status,
-    publishedAt: iso(row.post.publishedAt),
-    createdAt: row.post.createdAt.toISOString(),
-    updatedAt: row.post.updatedAt.toISOString(),
-  }
-}
-
-function toRecord(row: JoinedPost): PostRecord {
-  return {
-    ...toSummary(row),
-    body: row.post.body,
-  }
-}
-
 function postQuery(filter?: SQL) {
   const query = db
     .select({
       post: posts,
-      fname: users.fname,
-      lname: users.lname,
+      author: {
+        id: users.id,
+        fname: users.fname,
+        lname: users.lname,
+      },
     })
     .from(posts)
     .innerJoin(users, eq(posts.authorId, users.id))
   return filter ? query.where(filter) : query
 }
 
-async function findPost(postId: string) {
+async function findPost(postId: string): Promise<PostWithAuthor | undefined> {
   const rows = await postQuery(eq(posts.id, postId)).limit(1)
   return first(rows)
 }
 
-async function ratingFor(
-  postId: string,
-  actor: UserRow | null
-): Promise<PostRating> {
+async function ratingFor(postId: string, actor: UserRow | null) {
   const rows = await db
     .select({ score: ratings.score, userId: ratings.userId })
     .from(ratings)
@@ -215,39 +160,28 @@ async function ratingFor(
   }
 }
 
-async function commentsFor(postId: string): Promise<Array<PostComment>> {
-  const rows = await db
+async function commentsFor(postId: string) {
+  return db
     .select({
-      id: comments.id,
-      body: comments.body,
-      authorId: comments.authorId,
-      createdAt: comments.createdAt,
-      fname: users.fname,
-      lname: users.lname,
+      comment: comments,
+      author: {
+        id: users.id,
+        fname: users.fname,
+        lname: users.lname,
+      },
     })
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
     .where(eq(comments.postId, postId))
     .orderBy(asc(comments.createdAt))
-
-  return rows.map((row) => ({
-    id: row.id,
-    body: row.body,
-    authorId: row.authorId,
-    authorName: `${row.fname} ${row.lname}`,
-    createdAt: row.createdAt.toISOString(),
-  }))
 }
 
-async function detailFor(
-  row: JoinedPost,
-  actor: UserRow | null
-): Promise<PostDetail> {
+async function detailFor(row: PostWithAuthor, actor: UserRow | null) {
   const [postComments, rating] = await Promise.all([
     commentsFor(row.post.id),
     ratingFor(row.post.id, actor),
   ])
-  return { ...toRecord(row), comments: postComments, rating }
+  return { ...row, comments: postComments, rating }
 }
 
 export async function createPost(actor: UserRow, input: PostInput) {
@@ -308,7 +242,7 @@ export async function listOwnPosts(actor: UserRow) {
   const rows = await postQuery(eq(posts.authorId, actor.id)).orderBy(
     desc(posts.updatedAt)
   )
-  return rows.map(toRecord)
+  return rows
 }
 
 export async function listPostsByAuthor(actor: UserRow, authorId: string) {
@@ -322,7 +256,7 @@ export async function listPostsByAuthor(actor: UserRow, authorId: string) {
   const rows = await postQuery(eq(posts.authorId, authorId)).orderBy(
     desc(posts.updatedAt)
   )
-  return rows.map(toSummary)
+  return rows
 }
 
 export async function listAllPosts(actor: UserRow) {
@@ -333,8 +267,7 @@ export async function listAllPosts(actor: UserRow) {
       message: "Admin access is required.",
     })
   }
-  const rows = await postQuery().orderBy(desc(posts.updatedAt))
-  return rows.map(toSummary)
+  return postQuery().orderBy(desc(posts.updatedAt))
 }
 
 export async function listPublicPosts() {
@@ -345,7 +278,7 @@ export async function listPublicPosts() {
       or(isNull(posts.publishedAt), lte(posts.publishedAt, now))
     )
   ).orderBy(desc(sql`coalesce(${posts.publishedAt}, ${posts.createdAt})`))
-  return rows.map(toSummary)
+  return rows
 }
 
 export async function getPost(actor: UserRow | null, postId: string) {
@@ -400,11 +333,12 @@ export async function addComment(actor: UserRow, postId: string, body: string) {
   }
 
   return {
-    id: comment.id,
-    body: comment.body,
-    authorId: actor.id,
-    authorName: `${actor.fname} ${actor.lname}`,
-    createdAt: comment.createdAt.toISOString(),
+    comment,
+    author: {
+      id: actor.id,
+      fname: actor.fname,
+      lname: actor.lname,
+    },
   }
 }
 

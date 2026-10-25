@@ -10,22 +10,6 @@ type UserRow = typeof users.$inferSelect
 type Role = UserRow["role"]
 type Status = UserRow["status"]
 
-export type PublicUser = {
-  id: string
-  fname: string
-  lname: string
-  email: string | null
-  phone: string | null
-  emailVerifiedAt: string | null
-  phoneVerifiedAt: string | null
-  role: Role
-  status: Status
-  bannedAt: string | null
-  lockedUntil: string | null
-  avatarUrl: string | null
-  createdAt: string
-}
-
 type IdentityInput = {
   fname: string
   lname: string
@@ -54,24 +38,6 @@ function first<T>(rows: ReadonlyArray<T>): T | undefined {
 
 function iso(value: Date | null) {
   return value ? value.toISOString() : null
-}
-
-export function toPublicUser(user: UserRow): PublicUser {
-  return {
-    id: user.id,
-    fname: user.fname,
-    lname: user.lname,
-    email: user.email,
-    phone: user.phone,
-    emailVerifiedAt: iso(user.emailVerifiedAt),
-    phoneVerifiedAt: iso(user.phoneVerifiedAt),
-    role: user.role,
-    status: user.status,
-    bannedAt: iso(user.bannedAt),
-    lockedUntil: iso(user.lockedUntil),
-    avatarUrl: user.avatarUrl,
-    createdAt: user.createdAt.toISOString(),
-  }
 }
 
 function blankToNull(value: string | null | undefined) {
@@ -247,7 +213,7 @@ export async function register(input: IdentityInput & { password: string }) {
     }
 
     const session = await createSession(user.id)
-    return { user: toPublicUser(user), ...session }
+    return { user, ...session }
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw uniqueIdentityError(error)
@@ -288,12 +254,11 @@ export async function login(input: { identifier: string; password: string }) {
   }
 
   const session = await createSession(user.id)
-  return { user: toPublicUser(user), ...session }
+  return { user, ...session }
 }
 
 export async function getById(id: string) {
-  const user = await findUser(id)
-  return user ? toPublicUser(user) : null
+  return findUser(id)
 }
 
 export async function updateProfile(userId: string, input: IdentityInput) {
@@ -310,7 +275,7 @@ export async function updateProfile(userId: string, input: IdentityInput) {
     if (!user) {
       throw new ServiceError(404, { ok: false, message: "User not found." })
     }
-    return toPublicUser(user)
+    return user
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw uniqueIdentityError(error)
@@ -358,7 +323,7 @@ export async function setRole(actorId: string, userId: string, role: Role) {
   if (!user) {
     throw new ServiceError(404, { ok: false, message: "User not found." })
   }
-  return toPublicUser(user)
+  return user
 }
 
 export async function setStatus(
@@ -433,8 +398,7 @@ export async function setStatus(
 }
 
 export async function listUsers() {
-  const rows = await db.select().from(users).orderBy(desc(users.createdAt))
-  return rows.map(toPublicUser)
+  return db.select().from(users).orderBy(desc(users.createdAt))
 }
 
 export async function listAccountIssues(userId: string) {
@@ -445,15 +409,5 @@ export async function listAccountIssues(userId: string) {
     .where(eq(accountIssues.userId, userId))
     .orderBy(desc(accountIssues.createdAt))
 
-  return rows.map((issue) => ({
-    id: issue.id,
-    userId: issue.userId,
-    kind: issue.kind,
-    reason: issue.reason,
-    startsAt: issue.startsAt.toISOString(),
-    endsAt: iso(issue.endsAt),
-    createdBy: issue.createdBy,
-    resolvedAt: iso(issue.resolvedAt),
-    createdAt: issue.createdAt.toISOString(),
-  }))
+  return rows
 }

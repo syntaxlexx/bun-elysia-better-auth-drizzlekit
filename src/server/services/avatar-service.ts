@@ -5,7 +5,6 @@ import { eq } from "drizzle-orm"
 import { db } from "../db/index.ts"
 import { users } from "../db/schema.ts"
 import { ServiceError } from "./errors.ts"
-import { toPublicUser } from "./user-service.ts"
 
 const maxBytes = 2_000_000
 const extensions = {
@@ -66,7 +65,7 @@ export async function saveAvatar(userId: string, file: File) {
     })
     .where(eq(users.id, userId))
     .returning()
-  return toPublicUser(rows[0])
+  return rows[0]
 }
 
 export async function readAvatar(userId: string, file: string) {

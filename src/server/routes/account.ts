@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia"
 import { requireActiveUser } from "../auth/guard.ts"
+import { resources } from "../api-resources/index.ts"
 import { run } from "../http.ts"
 import { saveAvatar } from "../services/avatar-service.ts"
 import { setPassword, updateProfile } from "../services/user-service.ts"
@@ -10,7 +11,7 @@ export const accountRoutes = new Elysia()
     ({ body, request, set }) =>
       run(set, async () => {
         const user = await requireActiveUser(request)
-        return updateProfile(user.id, body)
+        return resources.users.userResource(await updateProfile(user.id, body))
       }),
     {
       body: t.Object({
@@ -40,7 +41,9 @@ export const accountRoutes = new Elysia()
     ({ body, request, set }) =>
       run(set, async () => {
         const user = await requireActiveUser(request)
-        return saveAvatar(user.id, body.avatar)
+        return resources.users.userResource(
+          await saveAvatar(user.id, body.avatar)
+        )
       }),
     {
       body: t.Object({

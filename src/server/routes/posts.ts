@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia"
+import { resources } from "../api-resources/index.ts"
 import { readActor, requireActiveUser } from "../auth/guard.ts"
 import { run } from "../http.ts"
 import {
@@ -20,21 +21,37 @@ const postBody = t.Object({
 })
 
 export const postRoutes = new Elysia()
-  .get("/posts", () => listPublicPosts())
+  .get("/posts", async () =>
+    (await listPublicPosts()).map(resources.posts.postPublicResource)
+  )
   .get("/posts/:postId", ({ params, request, set }) =>
-    run(set, async () => getPost(await readActor(request), params.postId))
+    run(set, async () =>
+      resources.posts.postDetailResource(
+        await getPost(await readActor(request), params.postId)
+      )
+    )
   )
   .post(
     "/posts",
     ({ body, request, set }) =>
-      run(set, async () => createPost(await requireActiveUser(request), body)),
+      run(set, async () =>
+        resources.posts.postDetailResource(
+          await createPost(await requireActiveUser(request), body)
+        )
+      ),
     { body: postBody }
   )
   .patch(
     "/posts/:postId",
     ({ params, body, request, set }) =>
       run(set, async () =>
-        updatePost(await requireActiveUser(request), params.postId, body)
+        resources.posts.postDetailResource(
+          await updatePost(
+            await requireActiveUser(request),
+            params.postId,
+            body
+          )
+        )
       ),
     { body: postBody }
   )
@@ -44,13 +61,23 @@ export const postRoutes = new Elysia()
     )
   )
   .get("/me/posts", ({ request, set }) =>
-    run(set, async () => listOwnPosts(await requireActiveUser(request)))
+    run(set, async () =>
+      (await listOwnPosts(await requireActiveUser(request))).map(
+        resources.posts.postResource
+      )
+    )
   )
   .post(
     "/posts/:postId/comments",
     ({ params, body, request, set }) =>
       run(set, async () =>
-        addComment(await requireActiveUser(request), params.postId, body.body)
+        resources.comments.commentResource(
+          await addComment(
+            await requireActiveUser(request),
+            params.postId,
+            body.body
+          )
+        )
       ),
     { body: t.Object({ body: t.String() }) }
   )
@@ -58,7 +85,13 @@ export const postRoutes = new Elysia()
     "/posts/:postId/rating",
     ({ params, body, request, set }) =>
       run(set, async () =>
-        ratePost(await requireActiveUser(request), params.postId, body.score)
+        resources.ratings.ratingResource(
+          await ratePost(
+            await requireActiveUser(request),
+            params.postId,
+            body.score
+          )
+        )
       ),
     { body: t.Object({ score: t.Number() }) }
   )

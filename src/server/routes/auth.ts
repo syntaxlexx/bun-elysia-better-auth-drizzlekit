@@ -6,13 +6,9 @@ import {
   readSession,
   sessionCookie,
 } from "../auth/session.ts"
+import { resources } from "../api-resources/index.ts"
 import { ServiceError } from "../services/errors.ts"
-import {
-  getAccountHold,
-  login,
-  register,
-  toPublicUser,
-} from "../services/user-service.ts"
+import { getAccountHold, login, register } from "../services/user-service.ts"
 
 export const authRoutes = new Elysia()
   .post(
@@ -24,7 +20,10 @@ export const authRoutes = new Elysia()
           result.token,
           result.expiresAt
         )
-        return { ok: true as const, user: result.user }
+        return {
+          ok: true as const,
+          user: resources.users.userResource(result.user),
+        }
       } catch (error) {
         if (error instanceof ServiceError) {
           set.status = error.status
@@ -52,7 +51,10 @@ export const authRoutes = new Elysia()
           result.token,
           result.expiresAt
         )
-        return { ok: true as const, user: result.user }
+        return {
+          ok: true as const,
+          user: resources.users.userResource(result.user),
+        }
       } catch (error) {
         if (error instanceof ServiceError) {
           set.status = error.status
@@ -81,5 +83,8 @@ export const authRoutes = new Elysia()
       set.status = 401
       return { ok: false as const, message: "Not signed in." }
     }
-    return { ...toPublicUser(user), hold: await getAccountHold(user) }
+    return {
+      ...resources.users.userResource(user),
+      hold: await getAccountHold(user),
+    }
   })

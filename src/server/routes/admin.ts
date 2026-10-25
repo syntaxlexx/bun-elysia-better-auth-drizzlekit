@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia"
+import { resources } from "../api-resources/index.ts"
 import { requireAdmin } from "../auth/guard.ts"
 import { run } from "../http.ts"
 import { listAllPosts, listPostsByAuthor } from "../services/post-service.ts"
@@ -28,7 +29,7 @@ export const adminRoutes = new Elysia()
   .get("/admin/users", ({ request, set }) =>
     run(set, async () => {
       await requireAdmin(request)
-      return listUsers()
+      return (await listUsers()).map(resources.users.userResource)
     })
   )
   .get("/admin/users/:userId", ({ params, request, set }) =>
@@ -43,7 +44,11 @@ export const adminRoutes = new Elysia()
         listPostsByAuthor(actor, params.userId),
         listAccountIssues(params.userId),
       ])
-      return { user, posts: userPosts, issues }
+      return {
+        user: resources.users.userResource(user),
+        posts: userPosts.map(resources.posts.postPublicResource),
+        issues: issues.map(resources.accountIssues.accountIssueResource),
+      }
     })
   )
   .put(
@@ -51,7 +56,9 @@ export const adminRoutes = new Elysia()
     ({ params, body, request, set }) =>
       run(set, async () => {
         const actor = await requireAdmin(request)
-        return setRole(actor.id, params.userId, body.role)
+        return resources.users.userResource(
+          await setRole(actor.id, params.userId, body.role)
+        )
       }),
     {
       body: t.Object({ role }),
@@ -74,7 +81,9 @@ export const adminRoutes = new Elysia()
     ({ params, body, request, set }) =>
       run(set, async () => {
         const actor = await requireAdmin(request)
-        return setStatus(actor.id, params.userId, body)
+        return resources.users.userResource(
+          await setStatus(actor.id, params.userId, body)
+        )
       }),
     {
       body: t.Object({
@@ -87,6 +96,6 @@ export const adminRoutes = new Elysia()
   .get("/admin/posts", ({ request, set }) =>
     run(set, async () => {
       const actor = await requireAdmin(request)
-      return listAllPosts(actor)
+      return (await listAllPosts(actor)).map(resources.posts.postPublicResource)
     })
   )
