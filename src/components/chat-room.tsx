@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react"
-import Pusher from "pusher-js"
-import type { PresenceChannel } from "pusher-js"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { errorMessage, formatTime, isRoomMessage } from "@/lib/records"
 import type { RealtimeConfig, RoomDetail, RoomMessage } from "@/lib/records"
+import { errorMessage, formatTime, isRoomMessage } from "@/lib/records"
 import { getTreaty } from "@/routes/api.$"
+import type { PresenceChannel } from "pusher-js"
+import Pusher from "pusher-js"
+import { useEffect, useRef, useState } from "react"
 
 function appendMessage(current: Array<RoomMessage>, message: RoomMessage) {
   if (current.some((item) => item.id === message.id)) {
@@ -193,7 +193,7 @@ export function ChatRoom({
   }
 
   return (
-    <section className="flex min-h-[32rem] flex-col gap-3">
+    <section className="flex min-h-128 flex-col gap-3">
       <header className="flex flex-col gap-2">
         <h1 className="text-lg font-medium">{detail.room.name}</h1>
         <ul className="flex flex-wrap gap-2">
