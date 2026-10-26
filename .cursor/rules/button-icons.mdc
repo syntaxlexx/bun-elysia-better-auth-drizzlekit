@@ -1,0 +1,33 @@
+---
+description: Every Button includes a Lucide icon
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# Button icons
+
+Every `Button` includes one icon from `lucide-react`. Text-only buttons are incomplete.
+
+Put the icon before the label with `data-icon="inline-start"`, or after it with `data-icon="inline-end"`. Leave sizing to `buttonVariants`. Do not add `size-*`, `w-*`, `h-*`, or margin classes on the icon.
+
+Icon-only buttons use `size="icon"` (or `icon-sm` / `icon-lg` / `icon-xs`) and an `sr-only` label.
+
+```tsx
+import { ArrowRight, Send } from "lucide-react"
+import { Button } from "@/components/ui/button"
+
+<Button type="submit">
+  <Send data-icon="inline-start" />
+  Send note
+</Button>
+
+<Button>
+  Next
+  <ArrowRight data-icon="inline-end" />
+</Button>
+
+<Button type="button" variant="ghost" size="icon">
+  <Send />
+  <span className="sr-only">Send</span>
+</Button>
+```
