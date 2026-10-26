@@ -1,5 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
 import { Field } from "@/components/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -13,6 +11,9 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { createFileRoute } from "@tanstack/react-router"
+import { SendIcon } from "lucide-react"
+import { useState } from "react"
 
 export const Route = createFileRoute("/(frontend)/contact")({
   head: () => ({
@@ -106,7 +107,10 @@ function ContactPage() {
                 </Field>
               </CardContent>
               <CardFooter>
-                <Button type="submit">Send note</Button>
+                <Button type="submit">
+                  Send note
+                  <SendIcon />
+                </Button>
               </CardFooter>
             </form>
           )}
