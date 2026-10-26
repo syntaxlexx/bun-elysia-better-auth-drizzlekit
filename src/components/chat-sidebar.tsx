@@ -2,7 +2,7 @@ import { Link, useNavigate, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { Field, fieldClassName } from "@/components/field"
 import { Button } from "@/components/ui/button"
-import { errorMessage, isRoom } from "@/lib/records"
+import { errorMessage, isRoom, readApi } from "@/lib/records"
 import type { Room } from "@/lib/records"
 import { getTreaty } from "@/routes/api.$"
 
@@ -22,10 +22,10 @@ export function ChatSidebar({ rooms }: { rooms: Array<Room> }) {
     setError(null)
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.rooms.post({ name })
+    const result = await readApi(await api.rooms.$post({ json: { name } }))
     setPending(false)
-    if (result.error || !isRoom(result.data)) {
-      setError(errorMessage(result.error, "Could not create the room."))
+    if (!result.ok || !isRoom(result.data)) {
+      setError(errorMessage(result.data, "Could not create the room."))
       return
     }
     setName("")

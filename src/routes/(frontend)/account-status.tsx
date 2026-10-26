@@ -8,14 +8,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { formatTime, isSessionUser } from "@/lib/records"
+import { formatTime, isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(frontend)/account-status")({
   beforeLoad: async () => {
     const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (result.error || !isSessionUser(result.data)) {
+    const result = await readApi(await api.me.$get())
+    if (!result.ok || !isSessionUser(result.data)) {
       throw redirect({ to: "/login" })
     }
     if (result.data.status === "ACTIVE") {

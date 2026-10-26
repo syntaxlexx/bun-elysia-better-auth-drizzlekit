@@ -3,7 +3,7 @@ import { useState } from "react"
 import { Field, areaClassName, fieldClassName } from "@/components/field"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { errorMessage, formatTime } from "@/lib/records"
+import { errorMessage, formatTime, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 const durations = [
@@ -48,19 +48,22 @@ function IssuesPage() {
     const lockDurationId = form.get("lockDurationId")
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.admin
-      .users({ userId: detail.user.id })
-      .status.put({
-        status,
-        reason: typeof reason === "string" ? reason : "",
-        lockDurationId:
-          status === "LOCKED" && typeof lockDurationId === "string"
-            ? lockDurationId
-            : undefined,
+    const result = await readApi(
+      await api.admin.users[":userId"].status.$put({
+        param: { userId: detail.user.id },
+        json: {
+          status,
+          reason: typeof reason === "string" ? reason : "",
+          lockDurationId:
+            status === "LOCKED" && typeof lockDurationId === "string"
+              ? lockDurationId
+              : undefined,
+        },
       })
+    )
     setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not update the account."))
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not update the account."))
       return
     }
     event.currentTarget.reset()

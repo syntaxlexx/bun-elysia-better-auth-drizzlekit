@@ -1,4 +1,4 @@
-import { treaty } from "@elysiajs/eden"
+import { hc } from "hono/client"
 import { createIsomorphicFn, createServerOnlyFn } from "@tanstack/react-start"
 import { createFileRoute } from "@tanstack/react-router"
 import type { App } from "@/server/app"
@@ -31,14 +31,15 @@ export const getTreaty = createIsomorphicFn()
       import("@tanstack/react-start/server"),
     ])
     const cookie = getRequest().headers.get("cookie")
-    return {
-      api: treaty(app, {
-        headers: cookie ? { cookie } : undefined,
-      }).api,
-    }
+    const client = hc<App>("http://tanstack.local", {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        app.request(input, init),
+      headers: cookie ? { cookie } : undefined,
+    })
+    return { api: client.api }
   })
   .client(() => ({
-    api: treaty<App>(window.location.origin, {
-      fetch: { credentials: "include" },
+    api: hc<App>(window.location.origin, {
+      init: { credentials: "include" },
     }).api,
   }))

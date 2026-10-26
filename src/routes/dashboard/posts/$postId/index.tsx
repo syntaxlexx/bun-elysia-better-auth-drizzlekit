@@ -8,15 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { formatTime, isPostDetail, postState } from "@/lib/records"
+import { formatTime, isPostDetail, postState, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 import { createFileRoute, Link, notFound } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/dashboard/posts/$postId/")({
   loader: async ({ params }) => {
     const { api } = await getTreaty()
-    const result = await api.posts({ postId: params.postId }).get()
-    if (result.error || !isPostDetail(result.data)) {
+    const result = await readApi(
+      await api.posts[":postId"].$get({ param: { postId: params.postId } })
+    )
+    if (!result.ok || !isPostDetail(result.data)) {
       throw notFound()
     }
     return { post: result.data }

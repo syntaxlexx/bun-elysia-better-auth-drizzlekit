@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { isSessionUser } from "@/lib/records"
+import { errorMessage, isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(auth)/register")({
@@ -26,8 +26,8 @@ export const Route = createFileRoute("/(auth)/register")({
   }),
   beforeLoad: async () => {
     const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (!result.error && isSessionUser(result.data)) {
+    const result = await readApi(await api.me.$get())
+    if (result.ok && isSessionUser(result.data)) {
       throw redirect({ to: "/dashboard" })
     }
   },
@@ -50,22 +50,21 @@ function RegisterPage() {
     setPending(true)
     const form = new FormData(event.currentTarget)
     const { api } = await getTreaty()
-    const result = await api.auth.register.post({
-      fname: field(form, "fname"),
-      lname: field(form, "lname"),
-      email: field(form, "email"),
-      phone: field(form, "phone"),
-      password: field(form, "password"),
-    })
+    const result = await readApi(
+      await api.auth.register.$post({
+        json: {
+          fname: field(form, "fname"),
+          lname: field(form, "lname"),
+          email: field(form, "email"),
+          phone: field(form, "phone"),
+          password: field(form, "password"),
+        },
+      })
+    )
     setPending(false)
 
-    if (result.error) {
-      const value = result.error.value
-      setError(
-        "message" in value && typeof value.message === "string"
-          ? value.message
-          : "Could not create the account."
-      )
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not create the account."))
       return
     }
 

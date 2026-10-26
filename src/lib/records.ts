@@ -2,15 +2,17 @@ export function errorMessage(error: unknown, fallback: string) {
   if (
     typeof error === "object" &&
     error !== null &&
-    "value" in error &&
-    typeof error.value === "object" &&
-    error.value !== null &&
-    "message" in error.value &&
-    typeof error.value.message === "string"
+    "message" in error &&
+    typeof error.message === "string"
   ) {
-    return error.value.message
+    return error.message
   }
   return fallback
+}
+
+export async function readApi(response: Response) {
+  const data: unknown = await response.json().catch(() => null)
+  return { ok: response.ok, status: response.status, data }
 }
 
 export function formatTime(value: string | Date | null | undefined) {

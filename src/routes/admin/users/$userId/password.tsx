@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage } from "@/lib/records"
+import { errorMessage, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin/users/$userId/password")({
@@ -33,12 +33,15 @@ function PasswordPage() {
     }
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.admin
-      .users({ userId: detail.user.id })
-      .password.put({ nextPassword })
+    const result = await readApi(
+      await api.admin.users[":userId"].password.$put({
+        param: { userId: detail.user.id },
+        json: { nextPassword },
+      })
+    )
     setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not set the password."))
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not set the password."))
       return
     }
     event.currentTarget.reset()

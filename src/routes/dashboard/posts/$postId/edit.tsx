@@ -1,15 +1,15 @@
 import { PostForm } from "@/components/post-form"
 import { Button } from "@/components/ui/button"
-import { errorMessage, isOwnedPostList } from "@/lib/records"
+import { errorMessage, isOwnedPostList, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 import { createFileRoute, Link, notFound } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/dashboard/posts/$postId/edit")({
   loader: async ({ params }) => {
     const { api } = await getTreaty()
-    const result = await api.me.posts.get()
-    if (result.error || !isOwnedPostList(result.data)) {
-      throw new Error(errorMessage(result.error, "Could not load the post."))
+    const result = await readApi(await api.me.posts.$get())
+    if (!result.ok || !isOwnedPostList(result.data)) {
+      throw new Error(errorMessage(result.data, "Could not load the post."))
     }
     const post = result.data.find((item) => item.id === params.postId)
     if (!post) {

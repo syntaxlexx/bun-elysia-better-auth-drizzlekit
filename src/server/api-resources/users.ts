@@ -1,3 +1,4 @@
+import { publicEmail } from "../auth/email.ts"
 import type { users as usersTable } from "../db/schema.ts"
 import { iso } from "./dates.ts"
 
@@ -14,7 +15,7 @@ export const users = {
     id: user.id,
     fname: user.fname,
     lname: user.lname,
-    email: user.email,
+    email: publicEmail(user.email),
     phone: user.phone,
     emailVerifiedAt: iso(user.emailVerifiedAt),
     phoneVerifiedAt: iso(user.phoneVerifiedAt),

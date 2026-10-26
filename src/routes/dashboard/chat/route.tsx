@@ -1,22 +1,27 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router"
 import { ChatSidebar } from "@/components/chat-sidebar"
-import { errorMessage, isRealtimeConfig, isRoomList } from "@/lib/records"
+import {
+  errorMessage,
+  isRealtimeConfig,
+  isRoomList,
+  readApi,
+} from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/dashboard/chat")({
   loader: async () => {
     const { api } = await getTreaty()
     const [roomsResult, configResult] = await Promise.all([
-      api.rooms.get(),
-      api.realtime.config.get(),
+      readApi(await api.rooms.$get()),
+      readApi(await api.realtime.config.$get()),
     ])
-    if (roomsResult.error || !isRoomList(roomsResult.data)) {
-      throw new Error(errorMessage(roomsResult.error, "Could not load rooms."))
+    if (!roomsResult.ok || !isRoomList(roomsResult.data)) {
+      throw new Error(errorMessage(roomsResult.data, "Could not load rooms."))
     }
     return {
       rooms: roomsResult.data.rooms,
       realtime:
-        configResult.error || !isRealtimeConfig(configResult.data)
+        !configResult.ok || !isRealtimeConfig(configResult.data)
           ? null
           : configResult.data,
     }

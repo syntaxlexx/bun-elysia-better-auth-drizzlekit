@@ -1,7 +1,9 @@
-import { Elysia, t } from "elysia"
+import { Hono } from "hono"
+import { z } from "zod"
 import { resources } from "../api-resources/index.ts"
 import { readActor, requireActiveUser } from "../auth/guard.ts"
-import { run } from "../http.ts"
+import type { AuthEnv } from "../auth/guard.ts"
+import { jsonBody, run } from "../http.ts"
 import {
   addComment,
   createPost,
@@ -13,91 +15,84 @@ import {
   updatePost,
 } from "../services/post-service.ts"
 
-const postBody = t.Object({
-  title: t.String(),
-  body: t.Array(t.Record(t.String(), t.Unknown())),
-  status: t.Union([t.Literal("DRAFT"), t.Literal("PUBLISHED")]),
-  publishedAt: t.Optional(t.Union([t.String(), t.Null()])),
+const postBody = z.object({
+  title: z.string(),
+  body: z.array(z.record(z.string(), z.unknown())),
+  status: z.union([z.literal("DRAFT"), z.literal("PUBLISHED")]),
+  publishedAt: z.string().nullable().optional(),
 })
 
-export const postRoutes = new Elysia()
-  .get("/posts", async () =>
-    (await listPublicPosts()).map(resources.posts.postPublicResource)
+export const postRoutes = new Hono<AuthEnv>()
+  .get("/posts", async (c) =>
+    c.json((await listPublicPosts()).map(resources.posts.postPublicResource))
   )
-  .get("/posts/:postId", ({ params, request, set }) =>
-    run(set, async () =>
+  .get("/posts/:postId", (c) =>
+    run(c, async () =>
       resources.posts.postDetailResource(
-        await getPost(await readActor(request), params.postId)
+        await getPost(await readActor(c.req.raw), c.req.param("postId"))
       )
     )
   )
-  .post(
-    "/posts",
-    ({ body, request, set }) =>
-      run(set, async () =>
-        resources.posts.postDetailResource(
-          await createPost(await requireActiveUser(request), body)
-        )
-      ),
-    { body: postBody }
-  )
-  .patch(
-    "/posts/:postId",
-    ({ params, body, request, set }) =>
-      run(set, async () =>
-        resources.posts.postDetailResource(
-          await updatePost(
-            await requireActiveUser(request),
-            params.postId,
-            body
-          )
-        )
-      ),
-    { body: postBody }
-  )
-  .delete("/posts/:postId", ({ params, request, set }) =>
-    run(set, async () =>
-      deletePost(await requireActiveUser(request), params.postId)
+  .post("/posts", requireActiveUser, jsonBody(postBody), (c) =>
+    run(c, async () =>
+      resources.posts.postDetailResource(
+        await createPost(c.get("user"), c.req.valid("json"))
+      )
     )
   )
-  .get("/me/posts", ({ request, set }) =>
-    run(set, async () =>
-      (await listOwnPosts(await requireActiveUser(request))).map(
-        resources.posts.postResource
+  .patch("/posts/:postId", requireActiveUser, jsonBody(postBody), (c) =>
+    run(c, async () =>
+      resources.posts.postDetailResource(
+        await updatePost(
+          c.get("user"),
+          c.req.param("postId"),
+          c.req.valid("json")
+        )
       )
+    )
+  )
+  .delete("/posts/:postId", requireActiveUser, (c) =>
+    run(c, async () => deletePost(c.get("user"), c.req.param("postId")))
+  )
+  .get("/me/posts", requireActiveUser, (c) =>
+    run(c, async () =>
+      (await listOwnPosts(c.get("user"))).map(resources.posts.postResource)
     )
   )
   .post(
     "/posts/:postId/comments",
-    ({ params, body, request, set }) =>
-      run(set, async () =>
+    requireActiveUser,
+    jsonBody(z.object({ body: z.string() })),
+    (c) =>
+      run(c, async () =>
         resources.comments.commentResource(
           await addComment(
-            await requireActiveUser(request),
-            params.postId,
-            body.body
+            c.get("user"),
+            c.req.param("postId"),
+            c.req.valid("json").body
           )
         )
-      ),
-    { body: t.Object({ body: t.String() }) }
+      )
   )
   .put(
     "/posts/:postId/rating",
-    ({ params, body, request, set }) =>
-      run(set, async () =>
-        resources.ratings.ratingResource(
+    requireActiveUser,
+    jsonBody(
+      z.object({
+        score: z.number(),
+        review: z.string().optional(),
+      })
+    ),
+    (c) =>
+      run(c, async () => {
+        const body = c.req.valid("json")
+        return resources.ratings.ratingResource(
           await ratePost(
-            await requireActiveUser(request),
-            params.postId,
+            c.get("user"),
+            c.req.param("postId"),
             body.score,
             body.review
           )
         )
-      ),
-    {
-      body: t.Object({
-        score: t.Number(),
-        review: t.Optional(t.String()),
-      }),
-    }
+      })
   )

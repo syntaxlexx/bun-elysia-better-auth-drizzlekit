@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { isSessionUser } from "@/lib/records"
+import { errorMessage, isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(auth)/login")({
@@ -26,8 +26,8 @@ export const Route = createFileRoute("/(auth)/login")({
   }),
   beforeLoad: async () => {
     const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (!result.error && isSessionUser(result.data)) {
+    const result = await readApi(await api.me.$get())
+    if (result.ok && isSessionUser(result.data)) {
       throw redirect({ to: "/dashboard" })
     }
   },
@@ -69,22 +69,28 @@ function LoginPage() {
     setPending(true)
     const form = new FormData(event.currentTarget)
     const { api } = await getTreaty()
-    const result = await api.auth.login.post({
-      identifier: field(form, "identifier"),
-      password: field(form, "password"),
-    })
+    const result = await readApi(
+      await api.auth.login.$post({
+        json: {
+          identifier: field(form, "identifier"),
+          password: field(form, "password"),
+        },
+      })
+    )
     setPending(false)
 
-    if (result.error) {
-      const value = result.error.value
+    if (!result.ok) {
+      const value = result.data
       setFailure({
-        message:
-          "message" in value && typeof value.message === "string"
-            ? value.message
-            : "Could not sign in.",
-        bannedAt: "bannedAt" in value ? timeLabel(value.bannedAt) : null,
+        message: errorMessage(value, "Could not sign in."),
+        bannedAt:
+          typeof value === "object" && value !== null && "bannedAt" in value
+            ? timeLabel(value.bannedAt)
+            : null,
         lockedUntil:
-          "lockedUntil" in value ? timeLabel(value.lockedUntil) : null,
+          typeof value === "object" && value !== null && "lockedUntil" in value
+            ? timeLabel(value.lockedUntil)
+            : null,
       })
       return
     }
@@ -113,6 +119,14 @@ function LoginPage() {
               required
             />
           </Field>
+          <p className="text-right text-sm">
+            <Link
+              to="/forgot-password"
+              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </p>
           {failure?.message ? (
             <Alert variant="destructive">
               <AlertTitle>{failure.message}</AlertTitle>

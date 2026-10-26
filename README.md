@@ -1,24 +1,38 @@
-# TanStack Start + shadcn/ui
+# Hono + TanStack Start -> Cloudflare
 
-This is a template for a new TanStack Start project with React, TypeScript, and shadcn/ui.
+A full-stack TypeScript setup demonstrating end-to-end type safety with Hono backend and TanStack Start frontend.
 
-## Adding components
+## The Stack
 
-To add components to your app, run the following command:
+Hono backend with Zod validation and OpenAPI docs. TanStack Start frontend with React Query. They connect through `src/routes/api.$.ts` which proxies requests to the Hono server.
+
+Types flow from Hono routes → exported App type → client → React Query.
+
+## Why Hono
+
+Portable: Deploy standalone or swap frontends easily
+Rich ecosystem: Mature middleware, authentication, validation
+Better DX: OpenAPI docs, type inference, simpler patterns
+Performance: Faster cold starts, smaller bundle size
+
+## Getting Started
 
 ```bash
-npx shadcn@latest add button
+bun install
+bun dev          # Start development server
+bun build        # Build for production
+bun start        # Run production build
 ```
 
-This will place the ui components in the `components` directory.
+Visit `/api/doc` for Swagger UI. Check src/routes/index.tsx for type-safe client usage.
 
-## Using components
+### Key Files:
 
-To use the components in your app, import them as follows:
+`server/index.ts` - Hono routes with Zod schemas
+`src/routes/api.$.ts` - TanStack → Hono proxy
+`src/routes/index.tsx` - Type-safe client example
 
-```tsx
-import { Button } from "@/components/ui/button"
-```
+Deploys as a single unit. Frontend gets backend types at compile time. 🔥
 
 ## Links
 

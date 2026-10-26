@@ -10,14 +10,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, isSessionUser } from "@/lib/records"
+import { errorMessage, isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/dashboard/profile")({
   loader: async () => {
     const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (result.error || !isSessionUser(result.data)) {
+    const result = await readApi(await api.me.$get())
+    if (!result.ok || !isSessionUser(result.data)) {
       throw new Error("Could not load your profile.")
     }
     return { user: result.data }
@@ -47,15 +47,19 @@ function ProfilePage() {
     setPending(true)
     const form = new FormData(event.currentTarget)
     const { api } = await getTreaty()
-    const result = await api.me.patch({
-      fname: field(form, "fname"),
-      lname: field(form, "lname"),
-      email: field(form, "email"),
-      phone: field(form, "phone"),
-    })
+    const result = await readApi(
+      await api.me.$patch({
+        json: {
+          fname: field(form, "fname"),
+          lname: field(form, "lname"),
+          email: field(form, "email"),
+          phone: field(form, "phone"),
+        },
+      })
+    )
     setPending(false)
-    if (result.error) {
-      setProfileError(errorMessage(result.error, "Could not update profile."))
+    if (!result.ok) {
+      setProfileError(errorMessage(result.data, "Could not update profile."))
       return
     }
     setProfileMessage("Profile saved.")
@@ -69,12 +73,14 @@ function ProfilePage() {
     setPending(true)
     const form = new FormData(event.currentTarget)
     const { api } = await getTreaty()
-    const result = await api.me.password.put({
-      nextPassword: field(form, "nextPassword"),
-    })
+    const result = await readApi(
+      await api.me.password.$put({
+        json: { nextPassword: field(form, "nextPassword") },
+      })
+    )
     setPending(false)
-    if (result.error) {
-      setPasswordError(errorMessage(result.error, "Could not change password."))
+    if (!result.ok) {
+      setPasswordError(errorMessage(result.data, "Could not change password."))
       return
     }
     event.currentTarget.reset()
@@ -92,10 +98,12 @@ function ProfilePage() {
     }
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.me.avatar.post({ avatar: file })
+    const result = await readApi(
+      await api.me.avatar.$post({ form: { avatar: file } })
+    )
     setPending(false)
-    if (result.error) {
-      setAvatarError(errorMessage(result.error, "Could not upload the image."))
+    if (!result.ok) {
+      setAvatarError(errorMessage(result.data, "Could not upload the image."))
       return
     }
     event.currentTarget.reset()

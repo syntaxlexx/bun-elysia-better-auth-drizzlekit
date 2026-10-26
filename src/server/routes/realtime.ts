@@ -1,6 +1,8 @@
-import { Elysia, t } from "elysia"
+import { Hono } from "hono"
+import { z } from "zod"
 import { requireActiveUser } from "../auth/guard.ts"
-import { run } from "../http.ts"
+import type { AuthEnv } from "../auth/guard.ts"
+import { jsonBody, run } from "../http.ts"
 import {
   getPusher,
   realtimePublicConfig,
@@ -9,18 +11,23 @@ import {
 import { joinRoom } from "../services/chat-service.ts"
 import { ServiceError } from "../services/errors.ts"
 
-export const realtimeRoutes = new Elysia()
-  .get("/realtime/config", ({ request, set }) =>
-    run(set, async () => {
-      await requireActiveUser(request)
-      return realtimePublicConfig()
-    })
+export const realtimeRoutes = new Hono<AuthEnv>()
+  .use("/realtime/*", requireActiveUser)
+  .get("/realtime/config", (c) =>
+    run(c, () => Promise.resolve(realtimePublicConfig()))
   )
   .post(
     "/realtime/auth",
-    ({ body, request, set }) =>
-      run(set, async () => {
-        const user = await requireActiveUser(request)
+    jsonBody(
+      z.object({
+        socketId: z.string(),
+        channelName: z.string(),
+      })
+    ),
+    (c) =>
+      run(c, async () => {
+        const user = c.get("user")
+        const body = c.req.valid("json")
         const roomId = roomIdFromChannel(body.channelName)
         if (!roomId) {
           throw new ServiceError(403, {
@@ -29,7 +36,7 @@ export const realtimeRoutes = new Elysia()
           })
         }
         await joinRoom(user, roomId)
-        const auth = getPusher().authorizeChannel(
+        const channelAuth = getPusher().authorizeChannel(
           body.socketId,
           body.channelName,
           {
@@ -38,14 +45,8 @@ export const realtimeRoutes = new Elysia()
           }
         )
         return {
-          auth: auth.auth,
-          channel_data: auth.channel_data,
+          auth: channelAuth.auth,
+          channel_data: channelAuth.channel_data,
         }
-      }),
-    {
-      body: t.Object({
-        socketId: t.String(),
-        channelName: t.String(),
-      }),
-    }
+      })
   )

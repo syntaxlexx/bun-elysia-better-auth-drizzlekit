@@ -1,9 +1,9 @@
+import { hashPassword } from "better-auth/crypto"
 import { and, desc, eq, isNull, or } from "drizzle-orm"
+import { storedEmail } from "../auth/email.ts"
 import { findLockDuration } from "../auth/lock-durations.ts"
-import { hashPassword, verifyPassword } from "../auth/password.ts"
-import { createSession } from "../auth/session.ts"
 import { db } from "../db/index.ts"
-import { accountIssues, users } from "../db/schema.ts"
+import { accountIssues, accounts, users } from "../db/schema.ts"
 import { ServiceError } from "./errors.ts"
 
 type UserRow = typeof users.$inferSelect
@@ -194,35 +194,64 @@ async function refusal(user: UserRow) {
   return new ServiceError(403, hold)
 }
 
-export async function register(input: IdentityInput & { password: string }) {
-  const identity = normalizeIdentity(input)
-  assertPassword(input.password)
-  const passwordHash = await hashPassword(input.password)
-
-  try {
-    const rows = await db
-      .insert(users)
-      .values({ ...identity, passwordHash })
-      .returning()
-    const user = first(rows)
-    if (!user) {
-      throw new ServiceError(422, {
-        ok: false,
-        message: "Could not create the account.",
-      })
-    }
-
-    const session = await createSession(user.id)
-    return { user, ...session }
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      throw uniqueIdentityError(error)
-    }
-    throw error
+async function assertIdentityAvailable(email: string, phone: string | null) {
+  const rows = await db
+    .select({ id: users.id, email: users.email, phone: users.phone })
+    .from(users)
+    .where(
+      phone
+        ? or(eq(users.email, email), eq(users.phone, phone))
+        : eq(users.email, email)
+    )
+  const taken = first(rows)
+  if (!taken) {
+    return
   }
+  if (phone && taken.phone === phone) {
+    throw new ServiceError(422, {
+      ok: false,
+      message: "That phone number is already registered.",
+    })
+  }
+  throw new ServiceError(422, {
+    ok: false,
+    message: "That email address is already registered.",
+  })
 }
 
-export async function login(input: { identifier: string; password: string }) {
+export async function prepareRegistration(
+  input: IdentityInput & { password: string }
+) {
+  const identity = normalizeIdentity(input)
+  assertPassword(input.password)
+  const email = storedEmail(identity.email, identity.phone)
+  if (!email) {
+    throw new ServiceError(422, {
+      ok: false,
+      message: "Enter an email address or a phone number.",
+    })
+  }
+  await assertIdentityAvailable(email, identity.phone)
+  return { ...identity, email, password: input.password }
+}
+
+export async function findByIdentifier(identifier: string) {
+  const value = identifier.trim()
+  if (!value) {
+    return null
+  }
+  const rows = await db
+    .select()
+    .from(users)
+    .where(or(eq(users.email, value), eq(users.phone, value)))
+    .limit(1)
+  return first(rows) ?? null
+}
+
+export async function resolveLogin(input: {
+  identifier: string
+  password: string
+}) {
   const identifier = input.identifier.trim()
   if (!identifier || !input.password) {
     throw new ServiceError(422, {
@@ -237,11 +266,7 @@ export async function login(input: { identifier: string; password: string }) {
     .where(or(eq(users.email, identifier), eq(users.phone, identifier)))
     .limit(1)
   const user = first(rows)
-
-  const passwordMatches =
-    user !== undefined &&
-    (await verifyPassword(input.password, user.passwordHash))
-  if (!user || !passwordMatches) {
+  if (!user) {
     throw new ServiceError(401, {
       ok: false,
       message: "Invalid email, phone, or password.",
@@ -253,22 +278,44 @@ export async function login(input: { identifier: string; password: string }) {
     throw denied
   }
 
-  const session = await createSession(user.id)
-  return { user, ...session }
+  return user
 }
 
 export async function getById(id: string) {
-  return findUser(id)
+  return (await findUser(id)) ?? null
+}
+
+export async function getByEmail(email: string) {
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1)
+  return first(rows) ?? null
 }
 
 export async function updateProfile(userId: string, input: IdentityInput) {
   await requireUser(userId)
   const identity = normalizeIdentity(input)
+  const email = storedEmail(identity.email, identity.phone)
+  if (!email) {
+    throw new ServiceError(422, {
+      ok: false,
+      message: "Enter an email address or a phone number.",
+    })
+  }
 
   try {
     const rows = await db
       .update(users)
-      .set({ ...identity, updatedAt: new Date() })
+      .set({
+        fname: identity.fname,
+        lname: identity.lname,
+        name: `${identity.fname} ${identity.lname}`,
+        email,
+        phone: identity.phone,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, userId))
       .returning()
     const user = first(rows)
@@ -290,11 +337,30 @@ export async function setPassword(
 ) {
   await requireUser(userId)
   assertPassword(input.nextPassword)
-  const passwordHash = await hashPassword(input.nextPassword)
-  await db
-    .update(users)
-    .set({ passwordHash, updatedAt: new Date() })
-    .where(eq(users.id, userId))
+  const password = await hashPassword(input.nextPassword)
+  const now = new Date()
+  const rows = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(
+      and(eq(accounts.userId, userId), eq(accounts.providerId, "credential"))
+    )
+    .limit(1)
+  const existing = first(rows)
+  if (!existing) {
+    await db.insert(accounts).values({
+      accountId: userId,
+      providerId: "credential",
+      userId,
+      password,
+    })
+  } else {
+    await db
+      .update(accounts)
+      .set({ password, updatedAt: now })
+      .where(eq(accounts.id, existing.id))
+  }
+  await db.update(users).set({ updatedAt: now }).where(eq(users.id, userId))
 }
 
 export async function adminSetPassword(

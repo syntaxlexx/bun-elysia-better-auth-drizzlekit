@@ -1,53 +1,46 @@
-import { Elysia, t } from "elysia"
-import { requireActiveUser } from "../auth/guard.ts"
+import { Hono } from "hono"
+import { z } from "zod"
 import { resources } from "../api-resources/index.ts"
-import { run } from "../http.ts"
+import { requireActiveUser } from "../auth/guard.ts"
+import type { AuthEnv } from "../auth/guard.ts"
+import { formBody, jsonBody, run } from "../http.ts"
 import { saveAvatar } from "../services/avatar-service.ts"
 import { setPassword, updateProfile } from "../services/user-service.ts"
 
-export const accountRoutes = new Elysia()
-  .patch(
-    "/me",
-    ({ body, request, set }) =>
-      run(set, async () => {
-        const user = await requireActiveUser(request)
-        return resources.users.userResource(await updateProfile(user.id, body))
-      }),
-    {
-      body: t.Object({
-        fname: t.String(),
-        lname: t.String(),
-        email: t.Optional(t.Union([t.String(), t.Null()])),
-        phone: t.Optional(t.Union([t.String(), t.Null()])),
-      }),
-    }
+const profileBody = z.object({
+  fname: z.string(),
+  lname: z.string(),
+  email: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+})
+
+const avatarBody = z.object({
+  avatar: z.instanceof(File),
+})
+
+export const accountRoutes = new Hono<AuthEnv>()
+  .use("/me", requireActiveUser)
+  .use("/me/*", requireActiveUser)
+  .patch("/me", jsonBody(profileBody), (c) =>
+    run(c, async () => {
+      const user = c.get("user")
+      return resources.users.userResource(
+        await updateProfile(user.id, c.req.valid("json"))
+      )
+    })
   )
-  .put(
-    "/me/password",
-    ({ body, request, set }) =>
-      run(set, async () => {
-        const user = await requireActiveUser(request)
-        await setPassword(user.id, body)
-        return { ok: true as const }
-      }),
-    {
-      body: t.Object({
-        nextPassword: t.String(),
-      }),
-    }
+  .put("/me/password", jsonBody(z.object({ nextPassword: z.string() })), (c) =>
+    run(c, async () => {
+      const user = c.get("user")
+      await setPassword(user.id, c.req.valid("json"))
+      return { ok: true as const }
+    })
   )
-  .post(
-    "/me/avatar",
-    ({ body, request, set }) =>
-      run(set, async () => {
-        const user = await requireActiveUser(request)
-        return resources.users.userResource(
-          await saveAvatar(user.id, body.avatar)
-        )
-      }),
-    {
-      body: t.Object({
-        avatar: t.File(),
-      }),
-    }
+  .post("/me/avatar", formBody(avatarBody), (c) =>
+    run(c, async () => {
+      const user = c.get("user")
+      return resources.users.userResource(
+        await saveAvatar(user.id, c.req.valid("form").avatar)
+      )
+    })
   )

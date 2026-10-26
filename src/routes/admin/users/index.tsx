@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatTime, isSessionUser } from "@/lib/records"
+import { formatTime, isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin/users/")({
   loader: async () => {
     const { api } = await getTreaty()
-    const result = await api.admin.users.get()
-    if (result.error || !Array.isArray(result.data)) {
+    const result = await readApi(await api.admin.users.$get())
+    if (!result.ok || !Array.isArray(result.data)) {
       throw new Error("Could not load users.")
     }
     return {

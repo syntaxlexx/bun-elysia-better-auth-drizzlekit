@@ -8,15 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, isOwnedPostList } from "@/lib/records"
+import { errorMessage, isOwnedPostList, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/dashboard/posts/")({
   loader: async () => {
     const { api } = await getTreaty()
-    const result = await api.me.posts.get()
-    if (result.error || !isOwnedPostList(result.data)) {
-      throw new Error(errorMessage(result.error, "Could not load your posts."))
+    const result = await readApi(await api.me.posts.$get())
+    if (!result.ok || !isOwnedPostList(result.data)) {
+      throw new Error(errorMessage(result.data, "Could not load your posts."))
     }
     return { posts: result.data }
   },

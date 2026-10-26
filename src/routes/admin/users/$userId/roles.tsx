@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage } from "@/lib/records"
+import { errorMessage, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin/users/$userId/roles")({
@@ -36,12 +36,15 @@ function RolesPage() {
     }
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.admin
-      .users({ userId: detail.user.id })
-      .role.put({ role })
+    const result = await readApi(
+      await api.admin.users[":userId"].role.$put({
+        param: { userId: detail.user.id },
+        json: { role },
+      })
+    )
     setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not update the role."))
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not update the role."))
       return
     }
     setMessage("Role saved.")

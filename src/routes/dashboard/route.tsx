@@ -1,13 +1,13 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 import { AppShell, ShellLink, SignOutButton } from "@/components/app-shell"
-import { isSessionUser } from "@/lib/records"
+import { isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
     const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (result.error || !isSessionUser(result.data)) {
+    const result = await readApi(await api.me.$get())
+    if (!result.ok || !isSessionUser(result.data)) {
       throw redirect({ to: "/login" })
     }
     if (result.data.status !== "ACTIVE") {

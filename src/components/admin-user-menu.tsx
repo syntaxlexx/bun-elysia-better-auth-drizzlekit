@@ -23,7 +23,7 @@ export function AdminUserMenu({ user }: { user: SessionUser }) {
 
   async function logout() {
     const { api } = await getTreaty()
-    await api.auth.logout.post()
+    await api.auth.logout.$post()
     await navigate({ to: "/" })
   }
 

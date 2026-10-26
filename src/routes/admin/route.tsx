@@ -9,14 +9,14 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { isSessionUser } from "@/lib/records"
+import { isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
     const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (result.error || !isSessionUser(result.data)) {
+    const result = await readApi(await api.me.$get())
+    if (!result.ok || !isSessionUser(result.data)) {
       throw redirect({ to: "/login" })
     }
     if (result.data.status !== "ACTIVE") {

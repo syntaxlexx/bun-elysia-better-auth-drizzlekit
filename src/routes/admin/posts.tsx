@@ -7,15 +7,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, isPostList } from "@/lib/records"
+import { errorMessage, isPostList, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/admin/posts")({
   loader: async () => {
     const { api } = await getTreaty()
-    const result = await api.admin.posts.get()
-    if (result.error || !isPostList(result.data)) {
-      throw new Error(errorMessage(result.error, "Could not load posts."))
+    const result = await readApi(await api.admin.posts.$get())
+    if (!result.ok || !isPostList(result.data)) {
+      throw new Error(errorMessage(result.data, "Could not load posts."))
     }
     return { posts: result.data }
   },

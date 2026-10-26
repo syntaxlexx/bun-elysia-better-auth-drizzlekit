@@ -1,7 +1,9 @@
-import { Elysia, t } from "elysia"
+import { Hono } from "hono"
+import { z } from "zod"
 import { resources } from "../api-resources/index.ts"
 import { requireActiveUser } from "../auth/guard.ts"
-import { run } from "../http.ts"
+import type { AuthEnv } from "../auth/guard.ts"
+import { jsonBody, run } from "../http.ts"
 import { publishMessage } from "../realtime/pusher.ts"
 import {
   createMessage,
@@ -13,10 +15,11 @@ import {
   listRooms,
 } from "../services/chat-service.ts"
 
-export const roomRoutes = new Elysia()
-  .get("/rooms", ({ request, set }) =>
-    run(set, async () => {
-      await requireActiveUser(request)
+export const roomRoutes = new Hono<AuthEnv>()
+  .use("/rooms", requireActiveUser)
+  .use("/rooms/*", requireActiveUser)
+  .get("/rooms", (c) =>
+    run(c, async () => {
       const rows = await listRooms()
       return {
         rooms: rows.map((row) =>
@@ -25,26 +28,22 @@ export const roomRoutes = new Elysia()
       }
     })
   )
-  .post(
-    "/rooms",
-    ({ body, request, set }) =>
-      run(set, async () => {
-        const user = await requireActiveUser(request)
-        const created = await createRoom(user, body)
-        return resources.rooms.roomResource(
-          created.room,
-          created.participantCount
-        )
-      }),
-    { body: t.Object({ name: t.String() }) }
+  .post("/rooms", jsonBody(z.object({ name: z.string() })), (c) =>
+    run(c, async () => {
+      const created = await createRoom(c.get("user"), c.req.valid("json"))
+      return resources.rooms.roomResource(
+        created.room,
+        created.participantCount
+      )
+    })
   )
-  .get("/rooms/:roomId", ({ params, request, set }) =>
-    run(set, async () => {
-      await requireActiveUser(request)
+  .get("/rooms/:roomId", (c) =>
+    run(c, async () => {
+      const roomId = c.req.param("roomId")
       const [room, participants, messages] = await Promise.all([
-        getRoom(params.roomId),
-        listParticipants(params.roomId),
-        listMessages(params.roomId),
+        getRoom(roomId),
+        listParticipants(roomId),
+        listMessages(roomId),
       ])
       return {
         room: resources.rooms.roomResource(room.room, room.participantCount),
@@ -53,10 +52,10 @@ export const roomRoutes = new Elysia()
       }
     })
   )
-  .post("/rooms/:roomId/join", ({ params, request, set }) =>
-    run(set, async () => {
-      const user = await requireActiveUser(request)
-      const joined = await joinRoom(user, params.roomId)
+  .post("/rooms/:roomId/join", (c) =>
+    run(c, async () => {
+      const user = c.get("user")
+      const joined = await joinRoom(user, c.req.param("roomId"))
       return resources.rooms.participantResource({
         ...joined.participant,
         fname: joined.user.fname,
@@ -66,10 +65,18 @@ export const roomRoutes = new Elysia()
   )
   .post(
     "/rooms/:roomId/messages",
-    ({ params, body, request, set }) =>
-      run(set, async () => {
-        const user = await requireActiveUser(request)
-        const created = await createMessage(user, params.roomId, body.body)
+    jsonBody(
+      z.object({
+        body: z.string(),
+        socketId: z.string().optional(),
+      })
+    ),
+    (c) =>
+      run(c, async () => {
+        const user = c.get("user")
+        const roomId = c.req.param("roomId")
+        const body = c.req.valid("json")
+        const created = await createMessage(user, roomId, body.body)
         const message = resources.rooms.messageResource({
           ...created.message,
           fname: created.author.fname,
@@ -77,11 +84,7 @@ export const roomRoutes = new Elysia()
         })
         const socketId = body.socketId?.trim()
         try {
-          await publishMessage(
-            params.roomId,
-            message,
-            socketId ? socketId : undefined
-          )
+          await publishMessage(roomId, message, socketId ? socketId : undefined)
         } catch (error) {
           console.error(
             "Chat publish failed",
@@ -89,11 +92,5 @@ export const roomRoutes = new Elysia()
           )
         }
         return message
-      }),
-    {
-      body: t.Object({
-        body: t.String(),
-        socketId: t.Optional(t.String()),
-      }),
-    }
+      })
   )

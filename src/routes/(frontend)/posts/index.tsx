@@ -1,7 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowRight } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { formatDate, isPostList, isoDate, postState } from "@/lib/records"
+import {
+  formatDate,
+  isPostList,
+  isoDate,
+  postState,
+  readApi,
+} from "@/lib/records"
 import type { PostSummary } from "@/lib/records"
 import { getTreaty } from "@api"
 
@@ -17,8 +23,8 @@ export const Route = createFileRoute("/(frontend)/posts/")({
   }),
   loader: async () => {
     const { api } = await getTreaty()
-    const result = await api.posts.get()
-    if (result.error || !isPostList(result.data)) {
+    const result = await readApi(await api.posts.$get())
+    if (!result.ok || !isPostList(result.data)) {
       throw new Error("Could not load posts.")
     }
     return { posts: result.data }

@@ -64,7 +64,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
   async function logout() {
     setPending(true)
     const { api } = await getTreaty()
-    await api.auth.logout.post()
+    await api.auth.logout.$post()
     await router.invalidate()
     setPending(false)
     setOpen(false)

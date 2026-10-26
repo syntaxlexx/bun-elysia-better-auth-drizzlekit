@@ -1,7 +1,10 @@
-import { Elysia, t } from "elysia"
+import { Hono } from "hono"
+import { z } from "zod"
 import { resources } from "../api-resources/index.ts"
 import { requireAdmin } from "../auth/guard.ts"
-import { run } from "../http.ts"
+import type { AuthEnv } from "../auth/guard.ts"
+import { jsonBody, run } from "../http.ts"
+import { ServiceError } from "../services/errors.ts"
 import { listAllPosts, listPostsByAuthor } from "../services/post-service.ts"
 import {
   adminSetPassword,
@@ -12,37 +15,35 @@ import {
   setStatus,
 } from "../services/user-service.ts"
 
-const role = t.Union([
-  t.Literal("USER"),
-  t.Literal("ADMIN"),
-  t.Literal("LOCKED"),
+const role = z.union([
+  z.literal("USER"),
+  z.literal("ADMIN"),
+  z.literal("LOCKED"),
 ])
 
-const status = t.Union([
-  t.Literal("ACTIVE"),
-  t.Literal("BANNED"),
-  t.Literal("SUSPENDED"),
-  t.Literal("LOCKED"),
+const status = z.union([
+  z.literal("ACTIVE"),
+  z.literal("BANNED"),
+  z.literal("SUSPENDED"),
+  z.literal("LOCKED"),
 ])
 
-export const adminRoutes = new Elysia()
-  .get("/admin/users", ({ request, set }) =>
-    run(set, async () => {
-      await requireAdmin(request)
-      return (await listUsers()).map(resources.users.userResource)
-    })
+export const adminRoutes = new Hono<AuthEnv>()
+  .use("/admin/*", requireAdmin)
+  .get("/admin/users", (c) =>
+    run(c, async () => (await listUsers()).map(resources.users.userResource))
   )
-  .get("/admin/users/:userId", ({ params, request, set }) =>
-    run(set, async () => {
-      const actor = await requireAdmin(request)
-      const user = await getById(params.userId)
+  .get("/admin/users/:userId", (c) =>
+    run(c, async () => {
+      const actor = c.get("user")
+      const userId = c.req.param("userId")
+      const user = await getById(userId)
       if (!user) {
-        set.status = 404
-        return { ok: false as const, message: "User not found." }
+        throw new ServiceError(404, { ok: false, message: "User not found." })
       }
       const [userPosts, issues] = await Promise.all([
-        listPostsByAuthor(actor, params.userId),
-        listAccountIssues(params.userId),
+        listPostsByAuthor(actor, userId),
+        listAccountIssues(userId),
       ])
       return {
         user: resources.users.userResource(user),
@@ -51,51 +52,48 @@ export const adminRoutes = new Elysia()
       }
     })
   )
-  .put(
-    "/admin/users/:userId/role",
-    ({ params, body, request, set }) =>
-      run(set, async () => {
-        const actor = await requireAdmin(request)
-        return resources.users.userResource(
-          await setRole(actor.id, params.userId, body.role)
-        )
-      }),
-    {
-      body: t.Object({ role }),
-    }
+  .put("/admin/users/:userId/role", jsonBody(z.object({ role })), (c) =>
+    run(c, async () => {
+      const actor = c.get("user")
+      return resources.users.userResource(
+        await setRole(actor.id, c.req.param("userId"), c.req.valid("json").role)
+      )
+    })
   )
   .put(
     "/admin/users/:userId/password",
-    ({ params, body, request, set }) =>
-      run(set, async () => {
-        const actor = await requireAdmin(request)
-        await adminSetPassword(actor.id, params.userId, body)
+    jsonBody(z.object({ nextPassword: z.string() })),
+    (c) =>
+      run(c, async () => {
+        const actor = c.get("user")
+        await adminSetPassword(
+          actor.id,
+          c.req.param("userId"),
+          c.req.valid("json")
+        )
         return { ok: true as const }
-      }),
-    {
-      body: t.Object({ nextPassword: t.String() }),
-    }
+      })
   )
   .put(
     "/admin/users/:userId/status",
-    ({ params, body, request, set }) =>
-      run(set, async () => {
-        const actor = await requireAdmin(request)
-        return resources.users.userResource(
-          await setStatus(actor.id, params.userId, body)
-        )
-      }),
-    {
-      body: t.Object({
+    jsonBody(
+      z.object({
         status,
-        reason: t.Optional(t.String()),
-        lockDurationId: t.Optional(t.String()),
-      }),
-    }
+        reason: z.string().optional(),
+        lockDurationId: z.string().optional(),
+      })
+    ),
+    (c) =>
+      run(c, async () => {
+        const actor = c.get("user")
+        return resources.users.userResource(
+          await setStatus(actor.id, c.req.param("userId"), c.req.valid("json"))
+        )
+      })
   )
-  .get("/admin/posts", ({ request, set }) =>
-    run(set, async () => {
-      const actor = await requireAdmin(request)
+  .get("/admin/posts", (c) =>
+    run(c, async () => {
+      const actor = c.get("user")
       return (await listAllPosts(actor)).map(resources.posts.postPublicResource)
     })
   )

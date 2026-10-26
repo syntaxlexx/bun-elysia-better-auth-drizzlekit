@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router"
-import { isPostList, isSessionUser } from "@/lib/records"
+import { isPostList, isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
 
 const issueKinds = ["BAN", "SUSPEND", "LOCK"] as const
@@ -33,10 +33,15 @@ function isIssue(data: unknown): data is AdminIssue {
 export const Route = createFileRoute("/admin/users/$userId")({
   beforeLoad: async ({ params }) => {
     const { api } = await getTreaty()
-    const result = await api.admin.users({ userId: params.userId }).get()
+    const result = await readApi(
+      await api.admin.users[":userId"].$get({
+        param: { userId: params.userId },
+      })
+    )
     if (
-      result.error ||
+      !result.ok ||
       typeof result.data !== "object" ||
+      result.data === null ||
       !("user" in result.data) ||
       !isSessionUser(result.data.user) ||
       !("posts" in result.data) ||

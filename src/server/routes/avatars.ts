@@ -1,13 +1,12 @@
-import { Elysia } from "elysia"
+import { Hono } from "hono"
 import { readAvatar } from "../services/avatar-service.ts"
 
-export const avatarRoutes = new Elysia().get(
+export const avatarRoutes = new Hono().get(
   "/avatars/:userId/:file",
-  async ({ params, set }) => {
-    const file = await readAvatar(params.userId, params.file)
+  async (c) => {
+    const file = await readAvatar(c.req.param("userId"), c.req.param("file"))
     if (!file) {
-      set.status = 404
-      return { ok: false as const, message: "Avatar not found." }
+      return c.json({ ok: false as const, message: "Avatar not found." }, 404)
     }
 
     return new Response(file.bytes, {

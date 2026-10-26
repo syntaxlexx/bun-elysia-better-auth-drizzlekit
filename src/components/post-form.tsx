@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, toDateTimeLocal } from "@/lib/records"
+import { errorMessage, readApi, toDateTimeLocal } from "@/lib/records"
 import type { OwnedPost } from "@/lib/records"
 import { getTreaty } from "@/routes/api.$"
 
@@ -51,18 +51,24 @@ export function PostForm({ post }: { post?: OwnedPost }) {
     }
     setPending(true)
     const { api } = await getTreaty()
-    const result = post
-      ? await api.posts({ postId: post.id }).patch(payload)
-      : await api.posts.post(payload)
+    const result = await readApi(
+      post
+        ? await api.posts[":postId"].$patch({
+            param: { postId: post.id },
+            json: payload,
+          })
+        : await api.posts.$post({ json: payload })
+    )
     setPending(false)
 
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not save the post."))
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not save the post."))
       return
     }
 
     const saved = result.data
     if (
+      saved !== null &&
       typeof saved === "object" &&
       "id" in saved &&
       typeof saved.id === "string"
@@ -82,10 +88,12 @@ export function PostForm({ post }: { post?: OwnedPost }) {
     }
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.posts({ postId: post.id }).delete()
+    const result = await readApi(
+      await api.posts[":postId"].$delete({ param: { postId: post.id } })
+    )
     setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not delete the post."))
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not delete the post."))
       return
     }
     await navigate({ to: "/dashboard/posts" })

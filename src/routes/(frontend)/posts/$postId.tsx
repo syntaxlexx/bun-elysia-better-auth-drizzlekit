@@ -17,22 +17,22 @@ import {
   isoDate,
   isPostDetail,
   isSessionUser,
+  readApi,
 } from "@/lib/records"
 import { getTreaty } from "@api"
 
 async function loadPost({ postId }: { postId: string }) {
   const { api } = await getTreaty()
   const [postResult, meResult] = await Promise.all([
-    api.posts({ postId }).get(),
-    api.me.get(),
+    readApi(await api.posts[":postId"].$get({ param: { postId } })),
+    readApi(await api.me.$get()),
   ])
-  if (postResult.error || !isPostDetail(postResult.data)) {
+  if (!postResult.ok || !isPostDetail(postResult.data)) {
     throw notFound()
   }
   return {
     post: postResult.data,
-    user:
-      meResult.error || !isSessionUser(meResult.data) ? null : meResult.data,
+    user: !meResult.ok || !isSessionUser(meResult.data) ? null : meResult.data,
   }
 }
 
@@ -111,13 +111,15 @@ function Reviews() {
     setError(null)
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.posts({ postId: post.id }).rating.put({
-      score,
-      review,
-    })
+    const result = await readApi(
+      await api.posts[":postId"].rating.$put({
+        param: { postId: post.id },
+        json: { score, review },
+      })
+    )
     setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not save the rating."))
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not save the rating."))
       return
     }
     await router.invalidate()
@@ -235,10 +237,15 @@ function Comments() {
     }
     setPending(true)
     const { api } = await getTreaty()
-    const result = await api.posts({ postId: post.id }).comments.post({ body })
+    const result = await readApi(
+      await api.posts[":postId"].comments.$post({
+        param: { postId: post.id },
+        json: { body },
+      })
+    )
     setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not save the comment."))
+    if (!result.ok) {
+      setError(errorMessage(result.data, "Could not save the comment."))
       return
     }
     event.currentTarget.reset()

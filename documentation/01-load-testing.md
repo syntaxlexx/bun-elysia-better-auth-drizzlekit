@@ -4,10 +4,10 @@ Measure the production server on a machine shaped like a small VPS: **2 vCPU and
 
 This app serves two kinds of work on one process:
 
-- HTML routes render React on the server. Loaders call Elysia in-process through `getTreaty()`, so a document request does not make a second HTTP hop.
-- `/api/*` is the Elysia app in `src/server/app.ts`, forwarded by `src/routes/api.$.ts`.
+- HTML routes render React on the server. Loaders call Hono in-process through `getTreaty()`, so a document request does not make a second HTTP hop.
+- `/api/*` is the Hono app in `src/server/app.ts`, forwarded by `src/routes/api.$.ts`.
 
-Postgres is `postgres.js` with a pool of 10 (`src/server/db/index.ts`). Register and login hash passwords with `node:crypto` `scrypt` at Node's defaults (`N=16384`, `r=8`, `p=1`, about 32 MB per hash). On 2 cores that hash is the login ceiling.
+Postgres is `postgres.js` with a pool of 10 (`src/server/db/index.ts`). Register and login hash passwords through Better Auth.
 
 ## What a realistic request costs
 
@@ -20,8 +20,8 @@ Postgres is `postgres.js` with a pool of 10 (`src/server/db/index.ts`). Register
 | `GET /posts`              | SSR plus that same list query.                                                     |
 | `GET /api/posts/:postId`  | Post, comments, rating, and `views_counter = views_counter + 1` for a public view. |
 | `GET /posts/:postId`      | SSR, that write, and `GET /api/me` (401 when anonymous).                           |
-| `POST /api/auth/login`    | User lookup plus scrypt. CPU-bound.                                                |
-| `POST /api/auth/register` | scrypt plus an insert. Unique email or phone.                                      |
+| `POST /api/auth/login`    | User lookup plus a Better Auth password hash. CPU-bound.                           |
+| `POST /api/auth/register` | Password hash plus an insert. Unique email or phone.                               |
 
 Run API and HTML scenarios separately, then a mixed one. API-only numbers hide React rendering. HTML-only numbers hide clients that call `/api` directly.
 

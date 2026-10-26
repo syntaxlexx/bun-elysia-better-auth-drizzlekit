@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import type { RealtimeConfig, RoomDetail, RoomMessage } from "@/lib/records"
-import { errorMessage, formatTime, isRoomMessage } from "@/lib/records"
+import { errorMessage, formatTime, isRoomMessage, readApi } from "@/lib/records"
 import { getTreaty } from "@/routes/api.$"
 import type { PresenceChannel } from "pusher-js"
 import Pusher from "pusher-js"
@@ -163,13 +163,16 @@ export function ChatRoom({
     setPending(true)
     const socketId = clientRef.current?.connection.socket_id
     const { api } = await getTreaty()
-    const result = await api
-      .rooms({ roomId })
-      .messages.post(socketId ? { body, socketId } : { body })
+    const result = await readApi(
+      await api.rooms[":roomId"].messages.$post({
+        param: { roomId },
+        json: socketId ? { body, socketId } : { body },
+      })
+    )
     setPending(false)
     const message = result.data
-    if (result.error || !isRoomMessage(message)) {
-      setError(errorMessage(result.error, "Could not send the message."))
+    if (!result.ok || !isRoomMessage(message)) {
+      setError(errorMessage(result.data, "Could not send the message."))
       return
     }
     setDraft("")
