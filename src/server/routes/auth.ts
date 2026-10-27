@@ -3,11 +3,11 @@ import { resources } from "../api-resources/index.ts"
 import { readActor } from "../auth/guard.ts"
 import { getAccountHold } from "../services/user-service.ts"
 
-export const authRoutes = new Elysia().get("/me", async ({ request, set }) => {
+export const authRoutes = new Elysia().get("/me", async ({ request }) => {
   const user = await readActor(request)
+  // Guests are a normal result. A 401 is logged by the browser on every probe.
   if (!user) {
-    set.status = 401
-    return { ok: false as const, message: "Not signed in." }
+    return null
   }
   return {
     ...resources.users.userResource(user),

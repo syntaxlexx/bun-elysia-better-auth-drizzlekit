@@ -11,28 +11,25 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  errorMessage,
-  formatDate,
-  isoDate,
-  isPostDetail,
-  isSessionUser,
-} from "@/lib/records"
+import type { SessionUser } from "@/lib/records"
+import { errorMessage, formatDate, isoDate, isPostDetail } from "@/lib/records"
 import { getTreaty } from "@api"
 
-async function loadPost({ postId }: { postId: string }) {
+async function loadPost({
+  postId,
+  user,
+}: {
+  postId: string
+  user: SessionUser | null
+}) {
   const { api } = await getTreaty()
-  const [postResult, meResult] = await Promise.all([
-    api.posts({ postId }).get(),
-    api.me.get(),
-  ])
+  const postResult = await api.posts({ postId }).get()
   if (postResult.error || !isPostDetail(postResult.data)) {
     throw notFound()
   }
   return {
     post: postResult.data,
-    user:
-      meResult.error || !isSessionUser(meResult.data) ? null : meResult.data,
+    user,
   }
 }
 
@@ -48,7 +45,8 @@ export const Route = createFileRoute("/(frontend)/posts/$postId")({
       },
     ],
   }),
-  loader: ({ params }) => loadPost(params),
+  loader: ({ params, context }) =>
+    loadPost({ postId: params.postId, user: context.user }),
   component: PublicPostPage,
 })
 

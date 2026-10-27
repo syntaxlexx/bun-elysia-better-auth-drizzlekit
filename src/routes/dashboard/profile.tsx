@@ -8,20 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, isSessionUser } from "@/lib/records"
+import { errorMessage } from "@/lib/records"
 import { getTreaty } from "@api"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 
 export const Route = createFileRoute("/dashboard/profile")({
-  loader: async () => {
-    const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (result.error || !isSessionUser(result.data)) {
-      throw new Error("Could not load your profile.")
-    }
-    return { user: result.data }
-  },
+  loader: ({ context }) => ({ user: context.user }),
   component: ProfilePage,
 })
 
@@ -136,7 +129,7 @@ function ProfilePage() {
               <input
                 className={fieldClassName}
                 name="email"
-                defaultValue={user.email}
+                defaultValue={user.email ?? ""}
                 required
               />
             </Field>

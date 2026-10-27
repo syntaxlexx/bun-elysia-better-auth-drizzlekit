@@ -19,17 +19,13 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
-import { isSessionUser } from "@/lib/records"
-import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(auth)/login")({
   head: () => ({
     meta: [{ title: "Log in — Folio" }],
   }),
-  beforeLoad: async () => {
-    const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (!result.error && isSessionUser(result.data)) {
+  beforeLoad: ({ context }) => {
+    if (context.user) {
       throw redirect({ to: "/dashboard" })
     }
   },

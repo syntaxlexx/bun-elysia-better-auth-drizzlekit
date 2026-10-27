@@ -8,20 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { formatTime, isSessionUser } from "@/lib/records"
-import { getTreaty } from "@api"
+import { formatTime } from "@/lib/records"
 
 export const Route = createFileRoute("/(frontend)/account-status")({
-  beforeLoad: async () => {
-    const { api } = await getTreaty()
-    const result = await api.me.get()
-    if (result.error || !isSessionUser(result.data)) {
+  beforeLoad: ({ context }) => {
+    if (!context.user) {
       throw redirect({ to: "/login" })
     }
-    if (result.data.status === "ACTIVE") {
+    if (context.user.status === "ACTIVE") {
       throw redirect({ to: "/dashboard" })
     }
-    return { user: result.data }
+    return { user: context.user }
   },
   component: AccountStatusPage,
 })

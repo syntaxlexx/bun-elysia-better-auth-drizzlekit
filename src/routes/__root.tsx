@@ -1,4 +1,5 @@
 import { ThemeProvider, themeBootScript } from "@/components/theme-provider"
+import { loadSessionUser } from "@/lib/session"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
@@ -7,6 +8,9 @@ import { site } from "@/lib/utils"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
+  beforeLoad: async () => ({
+    user: await loadSessionUser(),
+  }),
   head: () => ({
     meta: [
       {
