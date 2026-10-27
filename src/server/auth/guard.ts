@@ -1,9 +1,22 @@
-import { readCookie, readSession } from "./session.ts"
+import { eq } from "drizzle-orm"
+import { db } from "../db/index.ts"
+import { users } from "../db/schema.ts"
 import { ServiceError } from "../services/errors.ts"
 import { getAccountHold } from "../services/user-service.ts"
+import { auth } from "./index.ts"
 
 export async function readActor(request: Request) {
-  return readSession(readCookie(request.headers.get("cookie")))
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return null
+  }
+
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1)
+  return rows[0] ?? null
 }
 
 export async function requireUser(request: Request) {

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { SessionUser } from "@/lib/records"
-import { getTreaty } from "@/routes/api.$"
+import { signOut } from "@/lib/auth-client"
 
 function initials(user: SessionUser) {
   return `${user.fname.slice(0, 1)}${user.lname.slice(0, 1)}`.toUpperCase()
@@ -22,8 +22,7 @@ export function AdminUserMenu({ user }: { user: SessionUser }) {
   const navigate = useNavigate()
 
   async function logout() {
-    const { api } = await getTreaty()
-    await api.auth.logout.post()
+    await signOut()
     await navigate({ to: "/" })
   }
 

@@ -4,6 +4,7 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
+import { UserPlus } from "lucide-react"
 import { useState } from "react"
 import { Field } from "@/components/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -17,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { authClient } from "@/lib/auth-client"
 import { isSessionUser } from "@/lib/records"
 import { getTreaty } from "@api"
 
@@ -49,23 +51,19 @@ function RegisterPage() {
     setError(null)
     setPending(true)
     const form = new FormData(event.currentTarget)
-    const { api } = await getTreaty()
-    const result = await api.auth.register.post({
-      fname: field(form, "fname"),
-      lname: field(form, "lname"),
+    const fname = field(form, "fname")
+    const lname = field(form, "lname")
+    const result = await authClient.signUp.email({
+      name: `${fname} ${lname}`,
       email: field(form, "email"),
-      phone: field(form, "phone"),
       password: field(form, "password"),
+      fname,
+      lname,
     })
     setPending(false)
 
     if (result.error) {
-      const value = result.error.value
-      setError(
-        "message" in value && typeof value.message === "string"
-          ? value.message
-          : "Could not create the account."
-      )
+      setError(result.error.message ?? "Could not create the account.")
       return
     }
 
@@ -77,7 +75,8 @@ function RegisterPage() {
       <CardHeader>
         <CardTitle className="text-xl">Open a desk</CardTitle>
         <CardDescription>
-          A name, a password, and either an email or a phone number.
+          A name, an email address, and a password. Phone sign-in can be added
+          later from the login page.
         </CardDescription>
       </CardHeader>
       <form onSubmit={onSubmit}>
@@ -91,15 +90,7 @@ function RegisterPage() {
             </Field>
           </div>
           <Field label="Email">
-            <Input
-              name="email"
-              type="text"
-              inputMode="email"
-              autoComplete="email"
-            />
-          </Field>
-          <Field label="Phone">
-            <Input name="phone" autoComplete="tel" placeholder="+14155552671" />
+            <Input name="email" type="email" autoComplete="email" required />
           </Field>
           <Field label="Password">
             <Input
@@ -119,6 +110,7 @@ function RegisterPage() {
         </CardContent>
         <CardFooter className="flex-col items-stretch gap-3">
           <Button type="submit" disabled={pending}>
+            <UserPlus data-icon="inline-start" />
             {pending ? "Creating account" : "Create account"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">

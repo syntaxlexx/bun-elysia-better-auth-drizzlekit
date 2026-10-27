@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatTime, isSessionUser } from "@/lib/records"
 import { getTreaty } from "@api"
+import { createFileRoute, Link } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/admin/users/")({
   loader: async () => {
@@ -52,7 +52,7 @@ function AdminUsersPage() {
                       {user.fname} {user.lname}
                     </Link>
                   </td>
-                  <td className="py-3 pr-3">{user.email ?? "—"}</td>
+                  <td className="py-3 pr-3">{user.email}</td>
                   <td className="py-3 pr-3">{user.phone ?? "—"}</td>
                   <td className="py-3 pr-3">{user.role}</td>
                   <td className="py-3 pr-3">{user.status}</td>

@@ -1,5 +1,3 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
 import { Field, fieldClassName } from "@/components/field"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,6 +10,8 @@ import {
 } from "@/components/ui/card"
 import { errorMessage, isSessionUser } from "@/lib/records"
 import { getTreaty } from "@api"
+import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { useState } from "react"
 
 export const Route = createFileRoute("/dashboard/profile")({
   loader: async () => {
@@ -106,13 +106,13 @@ function ProfilePage() {
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
         <form
-          key={`${user.fname}:${user.lname}:${user.email ?? ""}:${user.phone ?? ""}`}
+          key={`${user.fname}:${user.lname}:${user.email}:${user.phone}`}
           onSubmit={onProfile}
         >
           <CardHeader>
             <CardTitle>Profile</CardTitle>
             <CardDescription>
-              Keep at least an email address or a phone number.
+              Your email is how password and email-code sign-in find you.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -136,7 +136,8 @@ function ProfilePage() {
               <input
                 className={fieldClassName}
                 name="email"
-                defaultValue={user.email ?? ""}
+                defaultValue={user.email}
+                required
               />
             </Field>
             <Field label="Phone">

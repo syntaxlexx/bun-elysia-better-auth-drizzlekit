@@ -17,7 +17,7 @@ export const accountRoutes = new Elysia()
       body: t.Object({
         fname: t.String(),
         lname: t.String(),
-        email: t.Optional(t.Union([t.String(), t.Null()])),
+        email: t.String(),
         phone: t.Optional(t.Union([t.String(), t.Null()])),
       }),
     }

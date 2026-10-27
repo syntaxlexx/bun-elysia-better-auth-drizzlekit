@@ -1,3 +1,21 @@
+# host-gateway resolves to the host IP from inside the container (Linux + Compose 2.4+).
+x-app-common: &app-common
+  network_mode: host
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  restart: unless-stopped
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+  env_file:
+    - .env
+
+x-app-healthcheck: &app-healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 20s
+
 services:
   migrate:
     build:
@@ -8,7 +26,20 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@127.0.0.1:5432/elysia_tanstart}
     restart: "no"
 
-  app:
+  app1:
+    <<: *app-common
+    image: dukaloco-web-v2:${IMAGE_TAG}
+    container_name: dukaloco-web-app1
+    healthcheck:
+      <<: *app-healthcheck
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "http://127.0.0.1:${APP_PORT:-3000}/api/ready",
+        ]
     build:
       context: .
       target: runtime
@@ -18,6 +49,8 @@ services:
       HOST: 0.0.0.0
       PORT: ${APP_PORT:-3000}
       DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@127.0.0.1:5432/elysia_tanstart}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       PUSHER_APP_ID: ${PUSHER_APP_ID:-}
       PUSHER_KEY: ${PUSHER_KEY:-}
       PUSHER_SECRET: ${PUSHER_SECRET:-}
@@ -25,24 +58,8 @@ services:
       PUSHER_HOST: ${PUSHER_HOST:-}
       PUSHER_PORT: ${PUSHER_PORT:-443}
       PUSHER_FORCE_TLS: ${PUSHER_FORCE_TLS:-true}
-    volumes:
-      - avatars:/app/storage
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:${APP_PORT:-3000}/api/ready').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    restart: unless-stopped
-
-volumes:
-  avatars:
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}

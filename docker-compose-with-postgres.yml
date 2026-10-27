@@ -42,6 +42,8 @@ services:
       HOST: 0.0.0.0
       PORT: "3000"
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-elysia_tanstart}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       PUSHER_APP_ID: ${PUSHER_APP_ID:-}
       PUSHER_KEY: ${PUSHER_KEY:-}
       PUSHER_SECRET: ${PUSHER_SECRET:-}
@@ -49,8 +51,11 @@ services:
       PUSHER_HOST: ${PUSHER_HOST:-}
       PUSHER_PORT: ${PUSHER_PORT:-443}
       PUSHER_FORCE_TLS: ${PUSHER_FORCE_TLS:-true}
-    volumes:
-      - avatars:/app/storage
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -70,4 +75,3 @@ services:
 
 volumes:
   postgres_data:
-  avatars:

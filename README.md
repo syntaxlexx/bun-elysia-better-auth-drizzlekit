@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button"
 
 ## Docker
 
-`docker compose up --build` uses the host network, applies the Drizzle migrations to the Postgres in `DATABASE_URL`, and serves the app at `http://localhost:3000`. Avatar uploads are stored in the `avatars` volume. Pusher settings are read from the project `.env` when those variables are set. `docker compose -f docker-compose-with-postgres.yml up --build` starts Postgres in Docker instead.
+`docker compose up --build` uses the host network, applies the Drizzle migrations to the Postgres in `DATABASE_URL`, and serves the app at `http://localhost:3000`. Avatar uploads go to Cloudflare R2. Pusher settings are read from the project `.env` when those variables are set. `docker compose -f docker-compose-with-postgres.yml up --build` starts Postgres in Docker instead.
 
 ## Links
 

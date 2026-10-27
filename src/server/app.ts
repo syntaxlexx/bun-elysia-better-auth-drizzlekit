@@ -2,6 +2,7 @@ import "@tanstack/react-start/server-only"
 import { sql } from "drizzle-orm"
 import { Elysia } from "elysia"
 import { db } from "./db/index.ts"
+import { auth } from "./auth/index.ts"
 import { accountRoutes } from "./routes/account.ts"
 import { adminRoutes } from "./routes/admin.ts"
 import { authRoutes } from "./routes/auth.ts"
@@ -13,6 +14,9 @@ import { roomRoutes } from "./routes/rooms.ts"
 export const app = new Elysia({
   prefix: "/api",
 })
+  .all("/auth/*", ({ request }) => auth.handler(request), {
+    parse: "none",
+  })
   .get("/", () => "Hello Elysia!")
   .use(authRoutes)
   .use(accountRoutes)

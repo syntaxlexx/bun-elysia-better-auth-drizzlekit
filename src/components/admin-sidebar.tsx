@@ -15,7 +15,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import type { SessionUser } from "@/lib/records"
-import { getTreaty } from "@/routes/api.$"
+import { signOut } from "@/lib/auth-client"
 
 const navItems = [
   {
@@ -48,8 +48,7 @@ export function AdminSidebar({ user }: { user: SessionUser }) {
   const matchRoute = useMatchRoute()
 
   async function logout() {
-    const { api } = await getTreaty()
-    await api.auth.logout.post()
+    await signOut()
     await navigate({ to: "/" })
   }
 

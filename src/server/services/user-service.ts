@@ -1,7 +1,6 @@
-import { and, desc, eq, isNull, or } from "drizzle-orm"
+import { and, desc, eq, isNull } from "drizzle-orm"
+import { setCredentialPassword } from "../auth/credentials.ts"
 import { findLockDuration } from "../auth/lock-durations.ts"
-import { hashPassword, verifyPassword } from "../auth/password.ts"
-import { createSession } from "../auth/session.ts"
 import { db } from "../db/index.ts"
 import { accountIssues, users } from "../db/schema.ts"
 import { ServiceError } from "./errors.ts"
@@ -94,20 +93,18 @@ function normalizeIdentity(input: IdentityInput) {
       message: "Enter a first and last name.",
     })
   }
-  if (!email && !phone) {
+  if (!email) {
     throw new ServiceError(422, {
       ok: false,
-      message: "Enter an email address or a phone number.",
+      message: "Enter an email address.",
     })
   }
-  if (email) {
-    assertEmail(email)
-  }
+  assertEmail(email)
   if (phone) {
     assertPhone(phone)
   }
 
-  return { fname, lname, email, phone }
+  return { fname, lname, email, phone, name: `${fname} ${lname}` }
 }
 
 function isUniqueViolation(error: unknown): error is { constraint?: string } {
@@ -186,89 +183,27 @@ export async function getAccountHold(user: UserRow) {
   }
 }
 
-async function refusal(user: UserRow) {
-  const hold = await getAccountHold(user)
-  if (!hold) {
-    return null
-  }
-  return new ServiceError(403, hold)
-}
-
-export async function register(input: IdentityInput & { password: string }) {
-  const identity = normalizeIdentity(input)
-  assertPassword(input.password)
-  const passwordHash = await hashPassword(input.password)
-
-  try {
-    const rows = await db
-      .insert(users)
-      .values({ ...identity, passwordHash })
-      .returning()
-    const user = first(rows)
-    if (!user) {
-      throw new ServiceError(422, {
-        ok: false,
-        message: "Could not create the account.",
-      })
-    }
-
-    const session = await createSession(user.id)
-    return { user, ...session }
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      throw uniqueIdentityError(error)
-    }
-    throw error
-  }
-}
-
-export async function login(input: { identifier: string; password: string }) {
-  const identifier = input.identifier.trim()
-  if (!identifier || !input.password) {
-    throw new ServiceError(422, {
-      ok: false,
-      message: "Enter your email or phone number and password.",
-    })
-  }
-
-  const rows = await db
-    .select()
-    .from(users)
-    .where(or(eq(users.email, identifier), eq(users.phone, identifier)))
-    .limit(1)
-  const user = first(rows)
-
-  const passwordMatches =
-    user !== undefined &&
-    (await verifyPassword(input.password, user.passwordHash))
-  if (!user || !passwordMatches) {
-    throw new ServiceError(401, {
-      ok: false,
-      message: "Invalid email, phone, or password.",
-    })
-  }
-
-  const denied = await refusal(user)
-  if (denied) {
-    throw denied
-  }
-
-  const session = await createSession(user.id)
-  return { user, ...session }
-}
-
-export async function getById(id: string) {
-  return findUser(id)
-}
-
 export async function updateProfile(userId: string, input: IdentityInput) {
-  await requireUser(userId)
+  const current = await requireUser(userId)
   const identity = normalizeIdentity(input)
 
   try {
     const rows = await db
       .update(users)
-      .set({ ...identity, updatedAt: new Date() })
+      .set({
+        fname: identity.fname,
+        lname: identity.lname,
+        name: identity.name,
+        email: identity.email,
+        emailVerified:
+          identity.email === current.email ? current.emailVerified : false,
+        phoneNumber: identity.phone,
+        phoneNumberVerified:
+          identity.phone === current.phoneNumber
+            ? current.phoneNumberVerified
+            : false,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, userId))
       .returning()
     const user = first(rows)
@@ -290,11 +225,11 @@ export async function setPassword(
 ) {
   await requireUser(userId)
   assertPassword(input.nextPassword)
-  const passwordHash = await hashPassword(input.nextPassword)
-  await db
-    .update(users)
-    .set({ passwordHash, updatedAt: new Date() })
-    .where(eq(users.id, userId))
+  await setCredentialPassword(userId, input.nextPassword)
+}
+
+export async function getById(id: string) {
+  return findUser(id)
 }
 
 export async function adminSetPassword(

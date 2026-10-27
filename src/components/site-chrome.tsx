@@ -10,7 +10,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import type { SessionUser } from "@/lib/records"
-import { getTreaty } from "@/routes/api.$"
+import { signOut } from "@/lib/auth-client"
 import { cn } from "cn"
 
 const links = [
@@ -63,8 +63,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
 
   async function logout() {
     setPending(true)
-    const { api } = await getTreaty()
-    await api.auth.logout.post()
+    await signOut()
     await router.invalidate()
     setPending(false)
     setOpen(false)

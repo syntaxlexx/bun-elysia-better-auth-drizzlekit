@@ -43,7 +43,7 @@ const features = [
   {
     icon: Shield,
     title: "An account with a name",
-    body: "Sign in with email or phone. Your profile, posts, and avatar live in one desk.",
+    body: "Sign in with an email and password, an email code, or a phone code.",
   },
 ] as const
 
@@ -158,8 +158,8 @@ function HomePage() {
             Open a desk and leave the first draft unfinished.
           </h2>
           <p className="max-w-lg text-primary-foreground/80">
-            An account needs a name, a password, and either an email or a phone
-            number.
+            An account needs a name, an email address, and a password. You can
+            also sign in with an email code or a phone code.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button

@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
-import { getTreaty } from "@/routes/api.$"
+import { signOut } from "@/lib/auth-client"
 
 export function AppShell({
   title,
@@ -81,8 +81,7 @@ export function SignOutButton() {
   const navigate = useNavigate()
 
   async function logout() {
-    const { api } = await getTreaty()
-    await api.auth.logout.post()
+    await signOut()
     await navigate({ to: "/" })
   }
 

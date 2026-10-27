@@ -53,7 +53,7 @@ bun run db:migrate
 - Increment `views_counter` by 1 when a public viewer opens the post. No deduplication.
 - One rating per user per post. Score is an integer from 1 to 5. A rating may include a written review. `posts.average_ratings` stores the mean score and is recalculated whenever a rating is saved.
 - Comments are plain text.
-- Avatar files go in `storage/avatars/` (gitignored). Max 2_000_000 bytes. Allow `image/png`, `image/jpeg`, and `image/webp`.
+- Avatar files go to Cloudflare R2 under `avatars/{userId}/{uuid}.{ext}`. Max 2_000_000 bytes. Allow `image/png`, `image/jpeg`, and `image/webp`. `avatar_url` stores the public R2 URL.
 - Lock durations are exact for hours, days, and weeks. Month and year options use fixed day counts: 1 month = 30 days, 3 months = 90 days, 6 months = 180 days, 9 months = 270 days, 1 year = 365 days.
 - Session cookie name is `session`. `HttpOnly`, `SameSite=Lax`, `Path=/`. Lifetime is 30 days. Store only a hash of the token.
 
@@ -223,8 +223,8 @@ Export this list, in this order, for the admin dropdown:
 
 ### `src/server/services/avatar-service.ts`
 
-- `saveAvatar(userId, file)` writes `storage/avatars/{userId}/{uuid}.{ext}` and sets `avatar_url` to `/api/avatars/{userId}/{file}`
-- `readAvatar(userId, file)` returns bytes and content type, or null. Reject `..`, slashes, and any path outside that user directory.
+- `saveAvatar(userId, file)` uploads `avatars/{userId}/{uuid}.{ext}` to Cloudflare R2 and sets `avatar_url` to the public object URL. It deletes the previous R2 object when that URL belongs to this bucket.
+- `readAvatar(userId, file)` serves an avatar that was stored on local disk before R2. It returns bytes and content type, or null. Reject `..`, slashes, and any path outside that user directory.
 
 ## HTTP API
 
@@ -239,7 +239,7 @@ Mount these on the existing Elysia app. Shapes below are the JSON bodies. Authen
 | PATCH  | /api/me                           | session           | profile fields                        |
 | PUT    | /api/me/password                  | session           | owner password change                 |
 | POST   | /api/me/avatar                    | session           | multipart field `avatar`              |
-| GET    | /api/avatars/:userId/:file        | public            | avatar bytes                          |
+| GET    | /api/avatars/:userId/:file        | public            | local avatar bytes from before R2     |
 | GET    | /api/admin/users                  | admin             | user list                             |
 | GET    | /api/admin/users/:userId          | admin             | user, posts, issues                   |
 | PUT    | /api/admin/users/:userId/role     | admin             | `{ role }`                            |
@@ -310,7 +310,7 @@ Done when an author can save a BlockNote draft, schedule it with `published_at`,
 
 Files: `avatar-service`, `/dashboard/profile`, `/admin/posts`.
 
-Done when avatar upload round-trips through `GET /api/avatars/...`, and the admin post list shows drafts and scheduled posts.
+Done when avatar upload stores the image in Cloudflare R2 and the profile shows that public URL, and the admin post list shows drafts and scheduled posts.
 
 ## Acceptance
 

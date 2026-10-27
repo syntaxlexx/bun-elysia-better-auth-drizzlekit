@@ -75,8 +75,8 @@ function AboutPage() {
           <CardHeader>
             <CardTitle>What you can do here</CardTitle>
             <CardDescription>
-              Create an account with an email or a phone number. Write in the
-              dashboard. Read what other people have already published.
+              Create an account with your email. Write in the dashboard, or sign
+              in later with an email code or a phone code.
             </CardDescription>
           </CardHeader>
           <CardHeader>
