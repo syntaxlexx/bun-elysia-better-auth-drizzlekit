@@ -19,5 +19,6 @@
     "VITE_PUSHER_FORCE_TLS": "true",
     "VITE_PUSHER_HOST": "soketi.dukaloco.com",
     "VITE_PUSHER_PORT": "443",
+    "BETTER_AUTH_URL": "https://bun-elysia-better-auth-drizzlekit.acelords-space.workers.dev",
   },
 }
