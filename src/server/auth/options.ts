@@ -1,4 +1,6 @@
 import type { BetterAuthOptions } from "better-auth"
+import { emailOTP, phoneNumber } from "better-auth/plugins"
+import { rememberOtp } from "./otp-code.ts"
 import { rememberResetLink } from "./reset-link.ts"
 
 const origin = process.env.BETTER_AUTH_URL ?? ""
@@ -7,6 +9,42 @@ export const betterAuthOptions = {
   appName: "Folio",
   basePath: "/api/auth",
   trustedOrigins: origin ? [origin] : [],
+  disabledPaths: ["/sign-in/phone-number"],
+  plugins: [
+    phoneNumber({
+      expiresIn: 60 * 5,
+      otpLength: 6,
+      phoneNumberValidator: (value) => /^\+[1-9]\d{1,14}$/.test(value),
+      sendOTP: ({ phoneNumber: phone, code }) => {
+        rememberOtp(`phone:${phone}`, code)
+        if (process.env.NODE_ENV !== "production") {
+          console.info(`Phone login code for ${phone}: ${code}`)
+        }
+        return Promise.resolve()
+      },
+      schema: {
+        user: {
+          fields: {
+            phoneNumber: "phone",
+          },
+        },
+      },
+    }),
+    emailOTP({
+      expiresIn: 60 * 5,
+      otpLength: 6,
+      disableSignUp: true,
+      sendVerificationOTP({ email, otp, type }) {
+        if (type === "sign-in") {
+          rememberOtp(`email:${email}`, otp)
+          if (process.env.NODE_ENV !== "production") {
+            console.info(`Email login code for ${email}: ${otp}`)
+          }
+        }
+        return Promise.resolve()
+      },
+    }),
+  ],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
@@ -34,7 +72,6 @@ export const betterAuthOptions = {
     additionalFields: {
       fname: { type: "string", required: true },
       lname: { type: "string", required: true },
-      phone: { type: "string", required: false },
       role: {
         type: "string",
         required: false,

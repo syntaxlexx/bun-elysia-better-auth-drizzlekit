@@ -14,6 +14,12 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
+function primaryId(name = "id") {
+  return uuid(name)
+    .primaryKey()
+    .default(sql`uuidv7()`)
+}
+
 export const userRole = pgEnum("user_role", ["USER", "ADMIN", "LOCKED"])
 export const userStatus = pgEnum("user_status", [
   "ACTIVE",
@@ -31,7 +37,7 @@ export const accountIssueKind = pgEnum("account_issue_kind", [
 export const users = pgTable(
   "users",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     name: text("name").notNull(),
     fname: text("fname").notNull(),
     lname: text("lname").notNull(),
@@ -41,6 +47,9 @@ export const users = pgTable(
     phone: text("phone"),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
+    phoneNumberVerified: boolean("phone_number_verified")
+      .notNull()
+      .default(false),
     role: userRole("role").notNull().default("USER"),
     status: userStatus("status").notNull().default("ACTIVE"),
     bannedAt: timestamp("banned_at", { withTimezone: true }),
@@ -62,7 +71,7 @@ export const users = pgTable(
 export const sessions = pgTable(
   "sessions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -86,7 +95,7 @@ export const sessions = pgTable(
 export const accounts = pgTable(
   "accounts",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
     userId: uuid("user_id")
@@ -122,7 +131,7 @@ export const accounts = pgTable(
 export const verifications = pgTable(
   "verifications",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -137,7 +146,7 @@ export const verifications = pgTable(
 )
 
 export const accountIssues = pgTable("account_issues", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: primaryId(),
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -157,7 +166,7 @@ export const accountIssues = pgTable("account_issues", {
 })
 
 export const posts = pgTable("posts", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: primaryId(),
   authorId: uuid("author_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -176,7 +185,7 @@ export const posts = pgTable("posts", {
 })
 
 export const comments = pgTable("comments", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: primaryId(),
   postId: uuid("post_id")
     .notNull()
     .references(() => posts.id, { onDelete: "cascade" }),
@@ -195,7 +204,7 @@ export const comments = pgTable("comments", {
 export const ratings = pgTable(
   "ratings",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     postId: uuid("post_id")
       .notNull()
       .references(() => posts.id, { onDelete: "cascade" }),
@@ -220,7 +229,7 @@ export const ratings = pgTable(
 export const rooms = pgTable(
   "rooms",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     name: text("name").notNull(),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
@@ -240,7 +249,7 @@ export const rooms = pgTable(
 export const roomParticipants = pgTable(
   "room_participants",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     roomId: uuid("room_id")
       .notNull()
       .references(() => rooms.id, { onDelete: "cascade" }),
@@ -262,7 +271,7 @@ export const roomParticipants = pgTable(
 export const roomMessages = pgTable(
   "room_messages",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: primaryId(),
     roomId: uuid("room_id")
       .notNull()
       .references(() => rooms.id, { onDelete: "cascade" }),

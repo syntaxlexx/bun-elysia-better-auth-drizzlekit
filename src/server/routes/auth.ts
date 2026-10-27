@@ -6,11 +6,16 @@ import { bindings } from "../auth/bindings.ts"
 import { requireUser } from "../auth/guard.ts"
 import { jsonBody, run } from "../http.ts"
 import { ServiceError } from "../services/errors.ts"
+import { devOtp } from "../auth/otp-code.ts"
 import { takeResetLink } from "../auth/reset-link.ts"
 import {
+  confirmRealEmail,
+  findActiveByEmail,
+  findActiveByPhone,
   findByIdentifier,
   getAccountHold,
   getByEmail,
+  markPhoneVerified,
   prepareRegistration,
   resolveLogin,
 } from "../services/user-service.ts"
@@ -24,8 +29,24 @@ const registerBody = z.object({
 })
 
 const loginBody = z.object({
-  identifier: z.string(),
+  email: z.string(),
   password: z.string(),
+})
+
+const phoneBody = z.object({
+  phone: z.string(),
+})
+
+const phoneVerifyBody = phoneBody.extend({
+  code: z.string(),
+})
+
+const emailOtpBody = z.object({
+  email: z.string(),
+})
+
+const emailOtpVerifyBody = emailOtpBody.extend({
+  code: z.string(),
 })
 
 const forgotBody = z.object({
@@ -36,6 +57,24 @@ const resetBody = z.object({
   token: z.string(),
   newPassword: z.string(),
 })
+
+function assertCode(code: string) {
+  if (!/^\d{6}$/.test(code)) {
+    throw new ServiceError(422, {
+      ok: false,
+      message: "Enter the 6-digit code.",
+    })
+  }
+}
+
+function sentCode(message: string, key: string) {
+  const code = devOtp(key)
+  return {
+    ok: true as const,
+    message,
+    ...(code ? { code } : {}),
+  }
+}
 
 function jsonWithCookies(source: Response, body: unknown) {
   const headers = new Headers({ "content-type": "application/json" })
@@ -69,20 +108,21 @@ export const authRoutes = new Hono()
         password: prepared.password,
         fname: prepared.fname,
         lname: prepared.lname,
-        phone: prepared.phone ?? undefined,
+        ...(prepared.phone ? { phoneNumber: prepared.phone } : {}),
       },
       asResponse: true,
     })
     if (!response.ok) {
       await authFailure(response, "Could not create the account.")
     }
-    const user = await getByEmail(prepared.email)
-    if (!user) {
+    const created = await getByEmail(prepared.email)
+    if (!created) {
       throw new ServiceError(422, {
         ok: false,
         message: "Could not create the account.",
       })
     }
+    const user = await confirmRealEmail(created)
     return jsonWithCookies(response, {
       ok: true,
       user: resources.users.userResource(user),
@@ -98,8 +138,91 @@ export const authRoutes = new Hono()
     if (!response.ok) {
       throw new ServiceError(401, {
         ok: false,
-        message: "Invalid email, phone, or password.",
+        message: "Invalid email or password.",
       })
+    }
+    return jsonWithCookies(response, {
+      ok: true,
+      user: resources.users.userResource(user),
+    })
+  })
+  .post("/auth/phone/send-otp", jsonBody(phoneBody), async (c) => {
+    const message = "If that phone number is on an account, a code is ready."
+    const user = await findActiveByPhone(c.req.valid("json").phone)
+    if (!user?.phone) {
+      return c.json({ ok: true as const, message })
+    }
+    const response = await auth(bindings()).api.sendPhoneNumberOTP({
+      body: { phoneNumber: user.phone },
+      asResponse: true,
+    })
+    if (!response.ok) {
+      await authFailure(response, "Could not send a code.")
+    }
+    return c.json(sentCode(message, `phone:${user.phone}`))
+  })
+  .post("/auth/phone/verify", jsonBody(phoneVerifyBody), async (c) => {
+    const body = c.req.valid("json")
+    const code = body.code.trim()
+    assertCode(code)
+    const user = await findActiveByPhone(body.phone)
+    if (!user?.phone) {
+      throw new ServiceError(401, {
+        ok: false,
+        message: "That code is invalid or expired.",
+      })
+    }
+    const response = await auth(bindings()).api.verifyPhoneNumber({
+      body: { phoneNumber: user.phone, code },
+      asResponse: true,
+    })
+    if (!response.ok) {
+      await authFailure(response, "That code is invalid or expired.")
+    }
+    const verified = await markPhoneVerified(user.id)
+    if (!verified) {
+      throw new ServiceError(422, {
+        ok: false,
+        message: "Could not sign in.",
+      })
+    }
+    return jsonWithCookies(response, {
+      ok: true,
+      user: resources.users.userResource(verified),
+    })
+  })
+  .post("/auth/email-otp/send", jsonBody(emailOtpBody), async (c) => {
+    const message = "If that email is on an account, a code is ready."
+    const user = await findActiveByEmail(c.req.valid("json").email)
+    if (!user) {
+      return c.json({ ok: true as const, message })
+    }
+    const response = await auth(bindings()).api.sendVerificationOTP({
+      body: { email: user.email, type: "sign-in" },
+      asResponse: true,
+    })
+    if (!response.ok) {
+      await authFailure(response, "Could not send a code.")
+    }
+    return c.json(sentCode(message, `email:${user.email.toLowerCase()}`))
+  })
+  .post("/auth/email-otp/verify", jsonBody(emailOtpVerifyBody), async (c) => {
+    const body = c.req.valid("json")
+    const code = body.code.trim()
+    assertCode(code)
+    const user = await findActiveByEmail(body.email)
+    if (!user) {
+      throw new ServiceError(401, {
+        ok: false,
+        message: "That code is invalid or expired.",
+      })
+    }
+    const response = await auth(bindings()).api.signInEmailOTP({
+      body: { email: user.email, otp: code },
+      asResponse: true,
+    })
+    if (!response.ok) {
+      await authFailure(response, "That code is invalid or expired.")
     }
     return jsonWithCookies(response, {
       ok: true,

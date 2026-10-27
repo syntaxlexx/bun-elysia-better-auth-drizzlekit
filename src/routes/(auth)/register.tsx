@@ -1,10 +1,7 @@
-import {
-  createFileRoute,
-  Link,
-  redirect,
-  useNavigate,
-} from "@tanstack/react-router"
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
+import { UserPlus } from "lucide-react"
 import { useState } from "react"
+import { AuthSwitch } from "@/components/auth-switch"
 import { Field } from "@/components/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -118,17 +115,10 @@ function RegisterPage() {
         </CardContent>
         <CardFooter className="flex-col items-stretch gap-3">
           <Button type="submit" disabled={pending}>
+            <UserPlus data-icon="inline-start" />
             {pending ? "Creating account" : "Create account"}
           </Button>
-          <p className="text-center text-sm text-muted-foreground">
-            Already have a desk?{" "}
-            <Link
-              to="/login"
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              Log in
-            </Link>
-          </p>
+          <AuthSwitch current="/register" />
         </CardFooter>
       </form>
     </Card>

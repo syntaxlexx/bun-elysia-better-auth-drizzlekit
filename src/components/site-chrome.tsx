@@ -4,7 +4,17 @@ import {
   useRouter,
   useRouterState,
 } from "@tanstack/react-router"
-import { Feather, Menu, X } from "lucide-react"
+import {
+  CircleUser,
+  Feather,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Menu,
+  Smartphone,
+  UserPlus,
+  X,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { Button } from "@/components/ui/button"
@@ -156,9 +166,19 @@ function AccountActions({
           render={<Link to="/login" />}
           variant="ghost"
         >
+          <LogIn data-icon="inline-start" />
           Log in
         </Button>
+        <Button
+          nativeButton={false}
+          render={<Link to="/phone-login" />}
+          variant="ghost"
+        >
+          <Smartphone data-icon="inline-start" />
+          Phone login
+        </Button>
         <Button nativeButton={false} render={<Link to="/register" />}>
+          <UserPlus data-icon="inline-start" />
           Create account
         </Button>
       </>
@@ -177,6 +197,11 @@ function AccountActions({
         render={<Link to={desk} />}
         variant="outline"
       >
+        {user.status === "ACTIVE" ? (
+          <LayoutDashboard data-icon="inline-start" />
+        ) : (
+          <CircleUser data-icon="inline-start" />
+        )}
         {user.status === "ACTIVE" ? "Dashboard" : "Account"}
       </Button>
       <Button
@@ -185,6 +210,7 @@ function AccountActions({
         disabled={pending}
         onClick={onLogout}
       >
+        <LogOut data-icon="inline-start" />
         {pending ? "Signing out" : "Log out"}
       </Button>
     </>
@@ -217,6 +243,12 @@ export function SiteFooter() {
               className="text-muted-foreground hover:text-foreground"
             >
               Log in
+            </Link>
+            <Link
+              to="/phone-login"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Phone login
             </Link>
           </nav>
         </div>

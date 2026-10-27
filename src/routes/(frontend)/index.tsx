@@ -43,7 +43,7 @@ const features = [
   {
     icon: Shield,
     title: "An account with a name",
-    body: "Sign in with email or phone. Your profile, posts, and avatar live in one desk.",
+    body: "Sign in with email and password, a phone code, or an email code.",
   },
 ] as const
 

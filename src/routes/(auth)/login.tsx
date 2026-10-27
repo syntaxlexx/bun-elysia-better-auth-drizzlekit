@@ -1,10 +1,4 @@
-import {
-  createFileRoute,
-  Link,
-  redirect,
-  useNavigate,
-} from "@tanstack/react-router"
-import { useState } from "react"
+import { AuthSwitch } from "@/components/auth-switch"
 import { Field } from "@/components/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -19,6 +13,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { errorMessage, isSessionUser, readApi } from "@/lib/records"
 import { getTreaty } from "@api"
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router"
+import { LogIn } from "lucide-react"
+import { useState } from "react"
 
 export const Route = createFileRoute("/(auth)/login")({
   head: () => ({
@@ -72,7 +74,7 @@ function LoginPage() {
     const result = await readApi(
       await api.auth.login.$post({
         json: {
-          identifier: field(form, "identifier"),
+          email: field(form, "email"),
           password: field(form, "password"),
         },
       })
@@ -103,13 +105,13 @@ function LoginPage() {
       <CardHeader>
         <CardTitle className="text-xl">Welcome back</CardTitle>
         <CardDescription>
-          Use the email or phone on your Folio account.
+          Email and password. Phone numbers sign in with a code.
         </CardDescription>
       </CardHeader>
       <form onSubmit={onSubmit}>
         <CardContent className="flex flex-col gap-3">
-          <Field label="Email or phone">
-            <Input name="identifier" autoComplete="username" required />
+          <Field label="Email">
+            <Input name="email" type="email" autoComplete="email" required />
           </Field>
           <Field label="Password">
             <Input
@@ -143,17 +145,10 @@ function LoginPage() {
         </CardContent>
         <CardFooter className="flex-col items-stretch gap-3">
           <Button type="submit" disabled={pending}>
+            <LogIn data-icon="inline-start" />
             {pending ? "Signing in" : "Log in"}
           </Button>
-          <p className="text-center text-sm text-muted-foreground">
-            New to Folio?{" "}
-            <Link
-              to="/register"
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              Create an account
-            </Link>
-          </p>
+          <AuthSwitch current="/login" />
         </CardFooter>
       </form>
     </Card>

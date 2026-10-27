@@ -13,8 +13,10 @@ import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as frontendRouteRouteImport } from './routes/(frontend)/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as authEmailLoginRouteImport } from './routes/(auth)/email-login'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as authPhoneLoginRouteImport } from './routes/(auth)/phone-login'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
 import { Route as frontendIndexRouteImport } from './routes/(frontend)/index'
@@ -62,6 +64,11 @@ const DashboardRouteRoute = DashboardRouteRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const authEmailLoginRoute = authEmailLoginRouteImport.update({
+  id: '/email-login',
+  path: '/email-login',
+  getParentRoute: () => authRouteRoute,
+} as any)
 const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
@@ -70,6 +77,11 @@ const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
 const authLoginRoute = authLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authPhoneLoginRoute = authPhoneLoginRouteImport.update({
+  id: '/phone-login',
+  path: '/phone-login',
   getParentRoute: () => authRouteRoute,
 } as any)
 const authRegisterRoute = authRegisterRouteImport.update({
@@ -221,8 +233,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/chat': typeof DashboardChatRouteRouteWithChildren
+  '/email-login': typeof authEmailLoginRoute
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
+  '/phone-login': typeof authPhoneLoginRoute
   '/register': typeof authRegisterRoute
   '/reset-password': typeof authResetPasswordRoute
   '/about': typeof frontendAboutRoute
@@ -252,8 +266,10 @@ export interface FileRoutesByFullPath {
   '/dashboard/posts/$postId/': typeof DashboardPostsPostIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/email-login': typeof authEmailLoginRoute
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
+  '/phone-login': typeof authPhoneLoginRoute
   '/register': typeof authRegisterRoute
   '/reset-password': typeof authResetPasswordRoute
   '/about': typeof frontendAboutRoute
@@ -287,8 +303,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteRouteWithChildren
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/dashboard/chat': typeof DashboardChatRouteRouteWithChildren
+  '/(auth)/email-login': typeof authEmailLoginRoute
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/login': typeof authLoginRoute
+  '/(auth)/phone-login': typeof authPhoneLoginRoute
   '/(auth)/register': typeof authRegisterRoute
   '/(auth)/reset-password': typeof authResetPasswordRoute
   '/(frontend)/about': typeof frontendAboutRoute
@@ -323,8 +341,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/dashboard/chat'
+    | '/email-login'
     | '/forgot-password'
     | '/login'
+    | '/phone-login'
     | '/register'
     | '/reset-password'
     | '/about'
@@ -354,8 +374,10 @@ export interface FileRouteTypes {
     | '/dashboard/posts/$postId/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/email-login'
     | '/forgot-password'
     | '/login'
+    | '/phone-login'
     | '/register'
     | '/reset-password'
     | '/about'
@@ -388,8 +410,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/dashboard/chat'
+    | '/(auth)/email-login'
     | '/(auth)/forgot-password'
     | '/(auth)/login'
+    | '/(auth)/phone-login'
     | '/(auth)/register'
     | '/(auth)/reset-password'
     | '/(frontend)/about'
@@ -457,6 +481,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(auth)/email-login': {
+      id: '/(auth)/email-login'
+      path: '/email-login'
+      fullPath: '/email-login'
+      preLoaderRoute: typeof authEmailLoginRouteImport
+      parentRoute: typeof authRouteRoute
+    }
     '/(auth)/forgot-password': {
       id: '/(auth)/forgot-password'
       path: '/forgot-password'
@@ -469,6 +500,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof authLoginRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/phone-login': {
+      id: '/(auth)/phone-login'
+      path: '/phone-login'
+      fullPath: '/phone-login'
+      preLoaderRoute: typeof authPhoneLoginRouteImport
       parentRoute: typeof authRouteRoute
     }
     '/(auth)/register': {
@@ -671,15 +709,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface authRouteRouteChildren {
+  authEmailLoginRoute: typeof authEmailLoginRoute
   authForgotPasswordRoute: typeof authForgotPasswordRoute
   authLoginRoute: typeof authLoginRoute
+  authPhoneLoginRoute: typeof authPhoneLoginRoute
   authRegisterRoute: typeof authRegisterRoute
   authResetPasswordRoute: typeof authResetPasswordRoute
 }
 
 const authRouteRouteChildren: authRouteRouteChildren = {
+  authEmailLoginRoute: authEmailLoginRoute,
   authForgotPasswordRoute: authForgotPasswordRoute,
   authLoginRoute: authLoginRoute,
+  authPhoneLoginRoute: authPhoneLoginRoute,
   authRegisterRoute: authRegisterRoute,
   authResetPasswordRoute: authResetPasswordRoute,
 }

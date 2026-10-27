@@ -1,6 +1,6 @@
 import { hashPassword } from "better-auth/crypto"
 import { and, desc, eq, isNull, or } from "drizzle-orm"
-import { storedEmail } from "../auth/email.ts"
+import { bridgeEmailSuffix, storedEmail } from "../auth/email.ts"
 import { findLockDuration } from "../auth/lock-durations.ts"
 import { db } from "../db/index.ts"
 import { accountIssues, accounts, users } from "../db/schema.ts"
@@ -85,7 +85,7 @@ function assertPassword(password: string) {
 function normalizeIdentity(input: IdentityInput) {
   const fname = input.fname.trim()
   const lname = input.lname.trim()
-  const email = blankToNull(input.email)
+  const email = blankToNull(input.email)?.toLowerCase() ?? null
   const phone = blankToNull(input.phone)
 
   if (!fname || !lname) {
@@ -248,28 +248,26 @@ export async function findByIdentifier(identifier: string) {
   return first(rows) ?? null
 }
 
-export async function resolveLogin(input: {
-  identifier: string
-  password: string
-}) {
-  const identifier = input.identifier.trim()
-  if (!identifier || !input.password) {
+export async function resolveLogin(input: { email: string; password: string }) {
+  const email = input.email.trim().toLowerCase()
+  if (!email || !input.password) {
     throw new ServiceError(422, {
       ok: false,
-      message: "Enter your email or phone number and password.",
+      message: "Enter your email and password.",
     })
   }
+  assertEmail(email)
 
   const rows = await db
     .select()
     .from(users)
-    .where(or(eq(users.email, identifier), eq(users.phone, identifier)))
+    .where(eq(users.email, email))
     .limit(1)
   const user = first(rows)
   if (!user) {
     throw new ServiceError(401, {
       ok: false,
-      message: "Invalid email, phone, or password.",
+      message: "Invalid email or password.",
     })
   }
 
@@ -279,6 +277,81 @@ export async function resolveLogin(input: {
   }
 
   return user
+}
+
+async function activeAccount(user: UserRow | null) {
+  if (!user) {
+    return null
+  }
+  const denied = await refusal(user)
+  if (denied) {
+    throw denied
+  }
+  return user
+}
+
+export async function findActiveByEmail(email: string) {
+  const value = email.trim().toLowerCase()
+  if (!value) {
+    throw new ServiceError(422, {
+      ok: false,
+      message: "Enter your email address.",
+    })
+  }
+  assertEmail(value)
+  if (value.endsWith(bridgeEmailSuffix)) {
+    return null
+  }
+  return activeAccount(await getByEmail(value))
+}
+
+export async function findActiveByPhone(phone: string) {
+  const value = phone.trim()
+  if (!value) {
+    throw new ServiceError(422, {
+      ok: false,
+      message: "Enter your phone number.",
+    })
+  }
+  assertPhone(value)
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.phone, value))
+    .limit(1)
+  return activeAccount(first(rows) ?? null)
+}
+
+export async function confirmRealEmail(user: UserRow) {
+  // Email OTP treats an unverified address as unproven and deletes the password.
+  if (user.email.endsWith(bridgeEmailSuffix) || user.emailVerified) {
+    return user
+  }
+  const now = new Date()
+  const rows = await db
+    .update(users)
+    .set({
+      emailVerified: true,
+      emailVerifiedAt: user.emailVerifiedAt ?? now,
+      updatedAt: now,
+    })
+    .where(eq(users.id, user.id))
+    .returning()
+  return first(rows) ?? user
+}
+
+export async function markPhoneVerified(userId: string) {
+  const now = new Date()
+  const rows = await db
+    .update(users)
+    .set({
+      phoneNumberVerified: true,
+      phoneVerifiedAt: now,
+      updatedAt: now,
+    })
+    .where(eq(users.id, userId))
+    .returning()
+  return first(rows) ?? null
 }
 
 export async function getById(id: string) {
@@ -295,7 +368,7 @@ export async function getByEmail(email: string) {
 }
 
 export async function updateProfile(userId: string, input: IdentityInput) {
-  await requireUser(userId)
+  const current = await requireUser(userId)
   const identity = normalizeIdentity(input)
   const email = storedEmail(identity.email, identity.phone)
   if (!email) {
@@ -303,6 +376,15 @@ export async function updateProfile(userId: string, input: IdentityInput) {
       ok: false,
       message: "Enter an email address or a phone number.",
     })
+  }
+
+  const now = new Date()
+  const realEmail = !email.endsWith(bridgeEmailSuffix)
+  const sameEmail = current.email === email
+  const samePhone = current.phone === identity.phone
+  let emailVerifiedAt: Date | null = null
+  if (realEmail) {
+    emailVerifiedAt = sameEmail ? (current.emailVerifiedAt ?? now) : now
   }
 
   try {
@@ -313,8 +395,12 @@ export async function updateProfile(userId: string, input: IdentityInput) {
         lname: identity.lname,
         name: `${identity.fname} ${identity.lname}`,
         email,
+        emailVerified: realEmail,
+        emailVerifiedAt,
         phone: identity.phone,
-        updatedAt: new Date(),
+        phoneNumberVerified: samePhone ? current.phoneNumberVerified : false,
+        phoneVerifiedAt: samePhone ? current.phoneVerifiedAt : null,
+        updatedAt: now,
       })
       .where(eq(users.id, userId))
       .returning()
