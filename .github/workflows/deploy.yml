@@ -1,0 +1,83 @@
+# Production: build image in GitHub Actions (GHCR), VPS pulls + rolling deploy.
+# Secrets: HOST, USERNAME, APP_PATH, SSH_PRIVATE_KEY,
+#          GHCR_READ_TOKEN (PAT with read:packages), SENTRY_AUTH_TOKEN (optional)
+# VPS: git clone at APP_PATH, Docker + Compose, .env beside docker-compose.yml
+
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "DEPLOY_PRODUCTION"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    outputs:
+      slack_message_id: ${{ steps.slack.outputs.message_id }}
+
+    steps:
+      - name: Notify slack
+        id: slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_NOTIFICATIONS_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1
+        with:
+          channel: bot-github
+          status: STARTING Production Deployment
+          color: warning
+
+      - name: Notify slack — deploying
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_NOTIFICATIONS_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1
+        with:
+          message_id: ${{ steps.slack.outputs.message_id }}
+          channel: bot-github
+          status: DEPLOYING Production
+          color: warning
+
+      - name: Deploy on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: NEW_TAG,GHCR_READ_TOKEN
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.APP_PATH }}
+            git reset --hard
+            git clean -fd
+            git pull --ff-only
+            cd ci-cd
+            chmod +x deploy.sh
+            ./deploy.sh
+
+      - name: Notify slack success
+        if: success()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_NOTIFICATIONS_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1
+        with:
+          message_id: ${{ steps.slack.outputs.message_id }}
+          channel: bot-github
+          status: SUCCESS Production Deployment
+          color: good
+
+      - name: Notify slack fail
+        if: failure()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_NOTIFICATIONS_BOT_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1
+        with:
+          message_id: ${{ steps.slack.outputs.message_id }}
+          channel: bot-github
+          status: FAILED Production Deployment
+          color: danger

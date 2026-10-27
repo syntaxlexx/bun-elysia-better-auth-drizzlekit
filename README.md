@@ -131,6 +131,20 @@ async function triggerEvent() {
 triggerEvent()
 ```
 
+## Deploying to Prod
+
+The project can be deployed in several ways
+
+1. Vercel
+2. Netlify
+3. Your own VPS
+4. Laravel Cloud
+
+When deploying to your own VPS, you may decide to
+
+- Build a Docker image and host it in DockerHub or Github Container Registry.
+- Manually trigger deployment and build the image right in your VPS, bypassing DockerHub/GHCR. Github Actions can automate the process, you simply have to increment the `DEPLOY_PRODUCTION` file at the root of your application.
+
 ## Links
 
 - [Vercel Deployment](https://bun-elysia-better-auth-drizzlekit.vercel.app/) -> Deployed via the `vercel` branch
