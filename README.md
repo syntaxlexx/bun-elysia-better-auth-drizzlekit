@@ -145,6 +145,45 @@ When deploying to your own VPS, you may decide to
 - Build a Docker image and host it in DockerHub or Github Container Registry.
 - Manually trigger deployment and build the image right in your VPS, bypassing DockerHub/GHCR. Github Actions can automate the process, you simply have to increment the `DEPLOY_PRODUCTION` file at the root of your application.
 
+## Caddy
+
+Sample config for Caddy `reverse-proxy` and simple `load balancing`
+
+```caddy
+domain.com {
+  # apply security header
+  import ./security.conf
+  encode gzip zstd
+  root * /var/www/app/public
+
+  header {
+    Referrer-Policy strict-origin-when-cross-origin
+    X-Frame-Options SAMEORIGIN
+  }
+
+  request_body {
+    max_size 50MB
+  }
+
+  log {
+    output file /var/log/caddy/domain.com.log
+  }
+
+	reverse_proxy 127.0.0.1:3011 127.0.0.1:3012 {
+		lb_policy least_conn
+
+		health_uri /api/ready
+		health_interval 10s
+		health_timeout 3s
+
+		fail_duration 30s
+		unhealthy_status 5xx
+	}
+
+	file_server
+}
+```
+
 ## Links
 
 - [Vercel Deployment](https://bun-elysia-better-auth-drizzlekit.vercel.app/) -> Deployed via the `vercel` branch
