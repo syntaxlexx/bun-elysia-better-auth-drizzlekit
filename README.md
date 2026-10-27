@@ -37,3 +37,4 @@ Deploys as a single unit. Frontend gets backend types at compile time. 🔥
 ## Links
 
 - [Vercel Deployment](https://bun-elysia-better-auth-drizzlekit.vercel.app/) -> Deployed via the `vercel` branch
+- [Cloudflare Deployment](bun-elysia-better-auth-drizzlekit.acelords-space.workers.dev)
