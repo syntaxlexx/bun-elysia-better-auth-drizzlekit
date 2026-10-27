@@ -35,3 +35,13 @@ EXPOSE 3000
 
 # Match package.json "serve": preload Sentry instrumentation when present
 CMD ["bun", ".output/server/index.mjs"]
+
+# One-shot Drizzle migrations. Keeps drizzle-kit out of the app image.
+FROM deps AS migrate
+COPY drizzle.config.ts drizzle.config.ts
+COPY drizzle drizzle
+COPY src/server/db/schema.ts src/server/db/schema.ts
+CMD ["bun", "run", "db:migrate"]
+
+# Compose still selects this name. Last stage stays the app image.
+FROM production AS runtime

@@ -8,7 +8,7 @@ services:
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test:
         [
@@ -32,6 +32,7 @@ services:
     restart: "no"
 
   app:
+    image: tanstart-elysia:${IMAGE_TAG:-current}
     build:
       context: .
       target: runtime
@@ -43,7 +44,7 @@ services:
       PORT: "3000"
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-elysia_tanstart}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:${APP_PORT:-3000}}
       PUSHER_APP_ID: ${PUSHER_APP_ID:-}
       PUSHER_KEY: ${PUSHER_KEY:-}
       PUSHER_SECRET: ${PUSHER_SECRET:-}
@@ -60,17 +61,11 @@ services:
       migrate:
         condition: service_completed_successfully
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:3000/api/ready').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/ready"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 20s
     restart: unless-stopped
 
 volumes:
