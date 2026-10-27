@@ -14,7 +14,7 @@ git pull --ff-only
 
 # Services and ports to deploy. Add them as you add services to the docker-compose.yml file.
 services=(app1)
-ports=(3000)
+ports=(3011)
 
 # Image tags
 CURRENT_TAG="current"
