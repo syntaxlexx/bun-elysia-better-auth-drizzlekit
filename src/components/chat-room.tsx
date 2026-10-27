@@ -32,6 +32,7 @@ export function ChatRoom({
   const clientRef = useRef<Pusher | null>(null)
   const endpointRef = useRef("")
   const sessionRef = useRef(0)
+  const activeChannelRef = useRef("")
   const roomId = detail.room.id
   const realtimeKey = realtime?.key
   const realtimeCluster = realtime?.cluster
@@ -101,6 +102,7 @@ export function ChatRoom({
 
     const session = ++sessionRef.current
     const channelName = `presence-room-${roomId}`
+    activeChannelRef.current = channelName
     const channel = client.subscribe(channelName) as PresenceChannel
 
     const syncMembers = () => {
@@ -136,12 +138,16 @@ export function ChatRoom({
       channel.unbind("pusher:member_removed", syncMembers)
       channel.unbind("pusher:subscription_error", onSubscriptionError)
       channel.unbind("message", onMessage)
-      client.unsubscribe(channelName)
       queueMicrotask(() => {
         if (sessionRef.current === session && clientRef.current === client) {
           client.disconnect()
           clientRef.current = null
           endpointRef.current = ""
+          activeChannelRef.current = ""
+          return
+        }
+        if (activeChannelRef.current !== channelName) {
+          client.unsubscribe(channelName)
         }
       })
     }
