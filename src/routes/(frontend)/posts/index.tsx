@@ -1,9 +1,10 @@
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowRight } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { formatDate, isPostList, isoDate, postState } from "@/lib/records"
+import { publicPostsQuery } from "@/lib/queries/posts"
+import { formatDate, isoDate, postState } from "@/lib/records"
 import type { PostSummary } from "@/lib/records"
-import { getTreaty } from "@api"
 
 export const Route = createFileRoute("/(frontend)/posts/")({
   head: () => ({
@@ -15,19 +16,12 @@ export const Route = createFileRoute("/(frontend)/posts/")({
       },
     ],
   }),
-  loader: async () => {
-    const { api } = await getTreaty()
-    const result = await api.posts.get()
-    if (result.error || !isPostList(result.data)) {
-      throw new Error("Could not load posts.")
-    }
-    return { posts: result.data }
-  },
+  loader: ({ context }) => context.queryClient.query(publicPostsQuery()),
   component: PublicPostsPage,
 })
 
 function PublicPostsPage() {
-  const { posts } = Route.useLoaderData()
+  const { data: posts } = useSuspenseQuery(publicPostsQuery())
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col py-16">

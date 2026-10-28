@@ -1,4 +1,9 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router"
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { Field, fieldClassName } from "@/components/field"
 import { Button } from "@/components/ui/button"
@@ -10,47 +15,45 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage } from "@/lib/records"
-import { getTreaty } from "@api"
+import { adminUserQuery, setUserRole, userKeys } from "@/lib/queries/users"
+import type { UserRole } from "@/lib/queries/users"
 
 export const Route = createFileRoute("/admin/users/$userId/roles")({
   component: RolesPage,
 })
 
-function RolesPage() {
-  const router = useRouter()
-  const { detail } = Route.useRouteContext()
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+function isRole(value: FormDataEntryValue | null): value is UserRole {
+  return value === "USER" || value === "ADMIN" || value === "LOCKED"
+}
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+function RolesPage() {
+  const { userId } = Route.useParams()
+  const { data } = useSuspenseQuery(adminUserQuery(userId))
+  const queryClient = useQueryClient()
+  const [formError, setFormError] = useState<string | null>(null)
+  const save = useMutation({
+    mutationFn: (role: UserRole) => setUserRole(data.user.id, role),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: userKeys.all }),
+  })
+
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
-    setMessage(null)
-    const form = new FormData(event.currentTarget)
-    const role = form.get("role")
-    if (role !== "USER" && role !== "ADMIN" && role !== "LOCKED") {
-      setError("Choose a valid role.")
+    setFormError(null)
+    save.reset()
+    const role = new FormData(event.currentTarget).get("role")
+    if (!isRole(role)) {
+      setFormError("Choose a valid role.")
       return
     }
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = await api.admin
-      .users({ userId: detail.user.id })
-      .role.put({ role })
-    setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not update the role."))
-      return
-    }
-    setMessage("Role saved.")
-    await router.invalidate()
+    save.mutate(role)
   }
+
+  const failure =
+    formError ?? (save.error instanceof Error ? save.error.message : null)
 
   return (
     <Card>
-      <form key={detail.user.role} onSubmit={onSubmit}>
+      <form key={data.user.role} onSubmit={onSubmit}>
         <CardHeader>
           <CardTitle>Manage Roles</CardTitle>
           <CardDescription>
@@ -63,18 +66,20 @@ function RolesPage() {
             <select
               className={fieldClassName}
               name="role"
-              defaultValue={detail.user.role}
+              defaultValue={data.user.role}
             >
               <option value="USER">USER</option>
               <option value="ADMIN">ADMIN</option>
               <option value="LOCKED">LOCKED</option>
             </select>
           </Field>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {message ? <p className="text-sm">{message}</p> : null}
+          {failure ? (
+            <p className="text-sm text-destructive">{failure}</p>
+          ) : null}
+          {save.isSuccess ? <p className="text-sm">Role saved.</p> : null}
         </CardContent>
         <CardFooter>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={save.isPending}>
             Save role
           </Button>
         </CardFooter>

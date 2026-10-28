@@ -1,9 +1,9 @@
 import {
-  createFileRoute,
-  Link,
-  notFound,
-  useRouter,
-} from "@tanstack/react-router"
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { Field } from "@/components/field"
 import { PostEditor } from "@/components/post-editor"
@@ -11,47 +11,33 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import type { SessionUser } from "@/lib/records"
-import { errorMessage, formatDate, isoDate, isPostDetail } from "@/lib/records"
-import { getTreaty } from "@api"
-
-async function loadPost({
-  postId,
-  user,
-}: {
-  postId: string
-  user: SessionUser | null
-}) {
-  const { api } = await getTreaty()
-  const postResult = await api.posts({ postId }).get()
-  if (postResult.error || !isPostDetail(postResult.data)) {
-    throw notFound()
-  }
-  return {
-    post: postResult.data,
-    user,
-  }
-}
+import {
+  addPostComment,
+  postDetailQuery,
+  postKeys,
+  ratePost,
+} from "@/lib/queries/posts"
+import type { SessionUser, PostDetail } from "@/lib/records"
+import { formatDate, isoDate } from "@/lib/records"
 
 export const Route = createFileRoute("/(frontend)/posts/$postId")({
-  head: ({
-    loaderData,
-  }: {
-    loaderData?: Awaited<ReturnType<typeof loadPost>>
-  }) => ({
+  loader: async ({ params, context }) => ({
+    post: await context.queryClient.query(postDetailQuery(params.postId)),
+  }),
+  head: ({ loaderData }) => ({
     meta: [
       {
         title: loaderData ? `${loaderData.post.title} — Folio` : "Post — Folio",
       },
     ],
   }),
-  loader: ({ params, context }) =>
-    loadPost({ postId: params.postId, user: context.user }),
   component: PublicPostPage,
 })
 
 function PublicPostPage() {
-  const { post } = Route.useLoaderData()
+  const { postId } = Route.useParams()
+  const { user } = Route.useRouteContext()
+  const { data: post } = useSuspenseQuery(postDetailQuery(postId))
   const when = post.publishedAt ?? post.createdAt
   const date = formatDate(when)
 
@@ -78,47 +64,53 @@ function PublicPostPage() {
         </header>
         <PostEditor initial={post.body} editable={false} plain />
       </article>
-      <Reviews />
-      <Comments />
+      <Reviews post={post} user={user} />
+      <Comments post={post} user={user} />
     </div>
   )
 }
 
-function Reviews() {
-  const router = useRouter()
-  const { post, user } = Route.useLoaderData()
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+function Reviews({
+  post,
+  user,
+}: {
+  post: PostDetail
+  user: SessionUser | null
+}) {
+  const queryClient = useQueryClient()
+  const [formError, setFormError] = useState<string | null>(null)
   const [score, setScore] = useState<number | null>(post.rating.mine)
   const [review, setReview] = useState(post.rating.myReview ?? "")
   const canParticipate = user?.status === "ACTIVE"
   const average =
     post.rating.average === null ? null : post.rating.average.toFixed(1)
+  const save = useMutation({
+    mutationFn: () => {
+      if (score === null) {
+        throw new Error("Choose a rating from 1 to 5.")
+      }
+      return ratePost(post.id, score, review)
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: postKeys.detail(post.id) }),
+  })
+  const failure =
+    formError ?? (save.error instanceof Error ? save.error.message : null)
 
   useEffect(() => {
     setScore(post.rating.mine)
     setReview(post.rating.myReview ?? "")
   }, [post.id, post.rating.mine, post.rating.myReview])
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setFormError(null)
+    save.reset()
     if (score === null) {
-      setError("Choose a rating from 1 to 5.")
+      setFormError("Choose a rating from 1 to 5.")
       return
     }
-    setError(null)
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = await api.posts({ postId: post.id }).rating.put({
-      score,
-      review,
-    })
-    setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not save the rating."))
-      return
-    }
-    await router.invalidate()
+    save.mutate()
   }
 
   return (
@@ -171,7 +163,7 @@ function Reviews() {
                   size="sm"
                   variant={score === value ? "default" : "outline"}
                   aria-pressed={score === value}
-                  disabled={pending}
+                  disabled={save.isPending}
                   onClick={() => setScore(value)}
                 >
                   {value}
@@ -185,16 +177,16 @@ function Reviews() {
               onChange={(event) => setReview(event.target.value)}
               maxLength={2000}
               placeholder="What stayed with you?"
-              disabled={pending}
+              disabled={save.isPending}
             />
           </Field>
-          {error ? (
+          {failure ? (
             <Alert variant="destructive">
               <AlertTitle>Could not save the review</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{failure}</AlertDescription>
             </Alert>
           ) : null}
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={save.isPending}>
             {post.rating.mine === null ? "Publish review" : "Update review"}
           </Button>
         </form>
@@ -213,34 +205,37 @@ function Reviews() {
   )
 }
 
-function Comments() {
-  const router = useRouter()
-  const { post, user } = Route.useLoaderData()
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+function Comments({
+  post,
+  user,
+}: {
+  post: PostDetail
+  user: SessionUser | null
+}) {
+  const queryClient = useQueryClient()
   const canParticipate = user?.status === "ACTIVE"
   const count = post.comments.length
   const heading =
     count === 0 ? "Comments" : count === 1 ? "1 comment" : `${count} comments`
+  const save = useMutation({
+    mutationFn: (body: string) => addPostComment(post.id, body),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: postKeys.detail(post.id) }),
+  })
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
-    const form = new FormData(event.currentTarget)
-    const body = form.get("body")
+    save.reset()
+    const form = event.currentTarget
+    const body = new FormData(form).get("body")
     if (typeof body !== "string") {
       return
     }
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = await api.posts({ postId: post.id }).comments.post({ body })
-    setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not save the comment."))
-      return
-    }
-    event.currentTarget.reset()
-    await router.invalidate()
+    save.mutate(body, {
+      onSuccess: () => {
+        form.reset()
+      },
+    })
   }
 
   return (
@@ -276,15 +271,15 @@ function Comments() {
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <h3 className="font-heading text-lg font-medium">Leave a comment</h3>
           <Field label="Comment">
-            <Textarea name="body" required disabled={pending} />
+            <Textarea name="body" required disabled={save.isPending} />
           </Field>
-          {error ? (
+          {save.error instanceof Error ? (
             <Alert variant="destructive">
               <AlertTitle>Could not save the comment</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{save.error.message}</AlertDescription>
             </Alert>
           ) : null}
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={save.isPending}>
             Post comment
           </Button>
         </form>

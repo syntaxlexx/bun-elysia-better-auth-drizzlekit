@@ -1,24 +1,16 @@
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatTime, isSessionUser } from "@/lib/records"
-import { getTreaty } from "@api"
+import { adminUsersQuery } from "@/lib/queries/users"
+import { formatTime } from "@/lib/records"
 import { createFileRoute, Link } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/admin/users/")({
-  loader: async () => {
-    const { api } = await getTreaty()
-    const result = await api.admin.users.get()
-    if (result.error || !Array.isArray(result.data)) {
-      throw new Error("Could not load users.")
-    }
-    return {
-      users: result.data.filter(isSessionUser),
-    }
-  },
+  loader: ({ context }) => context.queryClient.query(adminUsersQuery()),
   component: AdminUsersPage,
 })
 
 function AdminUsersPage() {
-  const { users } = Route.useLoaderData()
+  const { data: users } = useSuspenseQuery(adminUsersQuery())
 
   return (
     <Card>

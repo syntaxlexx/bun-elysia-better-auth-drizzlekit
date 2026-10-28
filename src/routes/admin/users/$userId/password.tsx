@@ -1,5 +1,5 @@
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
 import { Field, fieldClassName } from "@/components/field"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,40 +9,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage } from "@/lib/records"
-import { getTreaty } from "@api"
+import { adminUserQuery, setUserPassword } from "@/lib/queries/users"
 
 export const Route = createFileRoute("/admin/users/$userId/password")({
   component: PasswordPage,
 })
 
 function PasswordPage() {
-  const { detail } = Route.useRouteContext()
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  const { userId } = Route.useParams()
+  const { data } = useSuspenseQuery(adminUserQuery(userId))
+  const save = useMutation({
+    mutationFn: (nextPassword: string) =>
+      setUserPassword(data.user.id, nextPassword),
+  })
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
-    setMessage(null)
-    const form = new FormData(event.currentTarget)
-    const nextPassword = form.get("nextPassword")
+    save.reset()
+    const form = event.currentTarget
+    const nextPassword = new FormData(form).get("nextPassword")
     if (typeof nextPassword !== "string") {
       return
     }
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = await api.admin
-      .users({ userId: detail.user.id })
-      .password.put({ nextPassword })
-    setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not set the password."))
-      return
-    }
-    event.currentTarget.reset()
-    setMessage("Password updated.")
+    save.mutate(nextPassword, {
+      onSuccess: () => {
+        form.reset()
+      },
+    })
   }
 
   return (
@@ -62,11 +55,13 @@ function PasswordPage() {
               required
             />
           </Field>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          {message ? <p className="text-sm">{message}</p> : null}
+          {save.error instanceof Error ? (
+            <p className="text-sm text-destructive">{save.error.message}</p>
+          ) : null}
+          {save.isSuccess ? <p className="text-sm">Password updated.</p> : null}
         </CardContent>
         <CardFooter>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={save.isPending}>
             Set password
           </Button>
         </CardFooter>

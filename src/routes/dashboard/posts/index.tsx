@@ -1,3 +1,4 @@
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { PostTable } from "@/components/post-table"
 import { Button } from "@/components/ui/button"
@@ -8,23 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, isOwnedPostList } from "@/lib/records"
-import { getTreaty } from "@api"
+import { ownPostsQuery } from "@/lib/queries/posts"
 
 export const Route = createFileRoute("/dashboard/posts/")({
-  loader: async () => {
-    const { api } = await getTreaty()
-    const result = await api.me.posts.get()
-    if (result.error || !isOwnedPostList(result.data)) {
-      throw new Error(errorMessage(result.error, "Could not load your posts."))
-    }
-    return { posts: result.data }
-  },
+  loader: ({ context }) => context.queryClient.query(ownPostsQuery()),
   component: OwnPostsPage,
 })
 
 function OwnPostsPage() {
-  const { posts } = Route.useLoaderData()
+  const { data: posts } = useSuspenseQuery(ownPostsQuery())
 
   return (
     <Card>

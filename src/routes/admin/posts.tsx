@@ -1,3 +1,4 @@
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { PostTable } from "@/components/post-table"
 import {
@@ -7,23 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, isPostList } from "@/lib/records"
-import { getTreaty } from "@api"
+import { adminPostsQuery } from "@/lib/queries/posts"
 
 export const Route = createFileRoute("/admin/posts")({
-  loader: async () => {
-    const { api } = await getTreaty()
-    const result = await api.admin.posts.get()
-    if (result.error || !isPostList(result.data)) {
-      throw new Error(errorMessage(result.error, "Could not load posts."))
-    }
-    return { posts: result.data }
-  },
+  loader: ({ context }) => context.queryClient.query(adminPostsQuery()),
   component: AdminPostsPage,
 })
 
 function AdminPostsPage() {
-  const { posts } = Route.useLoaderData()
+  const { data: posts } = useSuspenseQuery(adminPostsQuery())
 
   return (
     <Card>

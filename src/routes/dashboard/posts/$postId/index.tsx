@@ -8,24 +8,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { formatTime, isPostDetail, postState } from "@/lib/records"
-import { getTreaty } from "@api"
-import { createFileRoute, Link, notFound } from "@tanstack/react-router"
+import { postDetailQuery } from "@/lib/queries/posts"
+import { formatTime, postState } from "@/lib/records"
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute, Link } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/dashboard/posts/$postId/")({
-  loader: async ({ params }) => {
-    const { api } = await getTreaty()
-    const result = await api.posts({ postId: params.postId }).get()
-    if (result.error || !isPostDetail(result.data)) {
-      throw notFound()
-    }
-    return { post: result.data }
-  },
+  loader: ({ context, params }) =>
+    context.queryClient.query(postDetailQuery(params.postId)),
   component: PostPage,
 })
 
 function PostPage() {
-  const { post } = Route.useLoaderData()
+  const { postId } = Route.useParams()
+  const { data: post } = useSuspenseQuery(postDetailQuery(postId))
   const state = postState(post)
   const average =
     post.averageRatings === null ? null : post.averageRatings.toFixed(1)

@@ -1,27 +1,26 @@
+import { useSuspenseQuery } from "@tanstack/react-query"
 import { PostForm } from "@/components/post-form"
 import { Button } from "@/components/ui/button"
-import { errorMessage, isOwnedPostList } from "@/lib/records"
-import { getTreaty } from "@api"
+import { ownPostsQuery } from "@/lib/queries/posts"
 import { createFileRoute, Link, notFound } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/dashboard/posts/$postId/edit")({
-  loader: async ({ params }) => {
-    const { api } = await getTreaty()
-    const result = await api.me.posts.get()
-    if (result.error || !isOwnedPostList(result.data)) {
-      throw new Error(errorMessage(result.error, "Could not load the post."))
-    }
-    const post = result.data.find((item) => item.id === params.postId)
-    if (!post) {
+  loader: async ({ context, params }) => {
+    const posts = await context.queryClient.query(ownPostsQuery())
+    if (!posts.some((item) => item.id === params.postId)) {
       throw notFound()
     }
-    return { post }
   },
   component: EditPostPage,
 })
 
 function EditPostPage() {
-  const { post } = Route.useLoaderData()
+  const { postId } = Route.useParams()
+  const { data: posts } = useSuspenseQuery(ownPostsQuery())
+  const post = posts.find((item) => item.id === postId)
+  if (!post) {
+    throw notFound()
+  }
 
   return (
     <div className="flex flex-col gap-4">

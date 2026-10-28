@@ -8,13 +8,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage } from "@/lib/records"
-import { getTreaty } from "@api"
+import {
+  changePassword,
+  meQuery,
+  updateProfile,
+  uploadAvatar,
+  userKeys,
+} from "@/lib/queries/users"
+import type { ProfileWrite } from "@/lib/queries/users"
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 
 export const Route = createFileRoute("/dashboard/profile")({
-  loader: ({ context }) => ({ user: context.user }),
+  loader: ({ context }) => context.queryClient.query(meQuery()),
   component: ProfilePage,
 })
 
@@ -25,74 +36,68 @@ function field(form: FormData, name: string) {
 
 function ProfilePage() {
   const router = useRouter()
-  const { user } = Route.useLoaderData()
-  const [profileError, setProfileError] = useState<string | null>(null)
-  const [profileMessage, setProfileMessage] = useState<string | null>(null)
-  const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
-  const [avatarError, setAvatarError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  const queryClient = useQueryClient()
+  const { data: user } = useSuspenseQuery(meQuery())
 
-  async function onProfile(event: React.FormEvent<HTMLFormElement>) {
+  async function refreshProfile() {
+    await queryClient.invalidateQueries({ queryKey: userKeys.me })
+    await router.invalidate()
+  }
+
+  const profile = useMutation({
+    mutationFn: (input: ProfileWrite) => updateProfile(input),
+    onSuccess: refreshProfile,
+  })
+  const password = useMutation({
+    mutationFn: (nextPassword: string) => changePassword(nextPassword),
+  })
+  const avatar = useMutation({
+    mutationFn: (file: File) => uploadAvatar(file),
+    onSuccess: refreshProfile,
+  })
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const pending = profile.isPending || password.isPending || avatar.isPending
+  const photoError =
+    avatarError ?? (avatar.error instanceof Error ? avatar.error.message : null)
+
+  function onProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setProfileError(null)
-    setProfileMessage(null)
-    setPending(true)
+    profile.reset()
     const form = new FormData(event.currentTarget)
-    const { api } = await getTreaty()
-    const result = await api.me.patch({
+    profile.mutate({
       fname: field(form, "fname"),
       lname: field(form, "lname"),
       email: field(form, "email"),
       phone: field(form, "phone"),
     })
-    setPending(false)
-    if (result.error) {
-      setProfileError(errorMessage(result.error, "Could not update profile."))
-      return
-    }
-    setProfileMessage("Profile saved.")
-    await router.invalidate()
   }
 
-  async function onPassword(event: React.FormEvent<HTMLFormElement>) {
+  function onPassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setPasswordError(null)
-    setPasswordMessage(null)
-    setPending(true)
-    const form = new FormData(event.currentTarget)
-    const { api } = await getTreaty()
-    const result = await api.me.password.put({
-      nextPassword: field(form, "nextPassword"),
+    password.reset()
+    const form = event.currentTarget
+    password.mutate(field(new FormData(form), "nextPassword"), {
+      onSuccess: () => {
+        form.reset()
+      },
     })
-    setPending(false)
-    if (result.error) {
-      setPasswordError(errorMessage(result.error, "Could not change password."))
-      return
-    }
-    event.currentTarget.reset()
-    setPasswordMessage("Password updated.")
   }
 
-  async function onAvatar(event: React.FormEvent<HTMLFormElement>) {
+  function onAvatar(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setAvatarError(null)
-    const form = new FormData(event.currentTarget)
-    const file = form.get("avatar")
+    avatar.reset()
+    const form = event.currentTarget
+    const file = new FormData(form).get("avatar")
     if (!(file instanceof File) || file.size === 0) {
       setAvatarError("Choose an image.")
       return
     }
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = await api.me.avatar.post({ avatar: file })
-    setPending(false)
-    if (result.error) {
-      setAvatarError(errorMessage(result.error, "Could not upload the image."))
-      return
-    }
-    event.currentTarget.reset()
-    await router.invalidate()
+    avatar.mutate(file, {
+      onSuccess: () => {
+        form.reset()
+      },
+    })
   }
 
   return (
@@ -141,11 +146,13 @@ function ProfilePage() {
                 placeholder="+14155552671"
               />
             </Field>
-            {profileError ? (
-              <p className="text-sm text-destructive">{profileError}</p>
+            {profile.error instanceof Error ? (
+              <p className="text-sm text-destructive">
+                {profile.error.message}
+              </p>
             ) : null}
-            {profileMessage ? (
-              <p className="text-sm">{profileMessage}</p>
+            {profile.isSuccess ? (
+              <p className="text-sm">Profile saved.</p>
             ) : null}
           </CardContent>
           <CardFooter>
@@ -177,8 +184,8 @@ function ProfilePage() {
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
               />
-              {avatarError ? (
-                <p className="text-sm text-destructive">{avatarError}</p>
+              {photoError ? (
+                <p className="text-sm text-destructive">{photoError}</p>
               ) : null}
             </CardContent>
             <CardFooter>
@@ -204,11 +211,13 @@ function ProfilePage() {
                   required
                 />
               </Field>
-              {passwordError ? (
-                <p className="text-sm text-destructive">{passwordError}</p>
+              {password.error instanceof Error ? (
+                <p className="text-sm text-destructive">
+                  {password.error.message}
+                </p>
               ) : null}
-              {passwordMessage ? (
-                <p className="text-sm">{passwordMessage}</p>
+              {password.isSuccess ? (
+                <p className="text-sm">Password updated.</p>
               ) : null}
             </CardContent>
             <CardFooter>

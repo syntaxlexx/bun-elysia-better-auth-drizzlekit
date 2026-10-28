@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useRef, useState } from "react"
 import { Field, fieldClassName } from "@/components/field"
@@ -10,24 +11,62 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { errorMessage, toDateTimeLocal } from "@/lib/records"
+import { deletePost, postKeys, savePost } from "@/lib/queries/posts"
+import type { PostWrite } from "@/lib/queries/posts"
+import { toDateTimeLocal } from "@/lib/records"
 import type { OwnedPost } from "@/lib/records"
-import { getTreaty } from "@/routes/api.$"
 
 function field(form: FormData, name: string) {
   const value = form.get(name)
   return typeof value === "string" ? value : ""
 }
 
+function message(error: unknown) {
+  return error instanceof Error ? error.message : null
+}
+
 export function PostForm({ post }: { post?: OwnedPost }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const bodyRef = useRef<Array<Record<string, unknown>>>(post?.body ?? [])
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const save = useMutation({
+    mutationFn: (payload: PostWrite) => savePost(post?.id, payload),
+    onSuccess: async (postId) => {
+      await queryClient.invalidateQueries({ queryKey: postKeys.all })
+      if (postId) {
+        await navigate({
+          to: "/dashboard/posts/$postId",
+          params: { postId },
+        })
+        return
+      }
+      await navigate({ to: "/dashboard/posts" })
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: () => {
+      if (!post) {
+        throw new Error("Could not delete the post.")
+      }
+      return deletePost(post.id)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: postKeys.all })
+      await navigate({ to: "/dashboard/posts" })
+    },
+  })
+
+  const pending = save.isPending || remove.isPending
+  const failure = error ?? message(save.error) ?? message(remove.error)
+
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+    save.reset()
+    remove.reset()
     const form = new FormData(event.currentTarget)
     const publishedAtValue = field(form, "publishedAt")
     if (
@@ -38,57 +77,14 @@ export function PostForm({ post }: { post?: OwnedPost }) {
       return
     }
 
-    const payload = {
+    save.mutate({
       title: field(form, "title"),
       body: bodyRef.current,
-      status:
-        field(form, "status") === "PUBLISHED"
-          ? ("PUBLISHED" as const)
-          : ("DRAFT" as const),
+      status: field(form, "status") === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
       publishedAt: publishedAtValue
         ? new Date(publishedAtValue).toISOString()
         : null,
-    }
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = post
-      ? await api.posts({ postId: post.id }).patch(payload)
-      : await api.posts.post(payload)
-    setPending(false)
-
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not save the post."))
-      return
-    }
-
-    const saved = result.data
-    if (
-      typeof saved === "object" &&
-      "id" in saved &&
-      typeof saved.id === "string"
-    ) {
-      await navigate({
-        to: "/dashboard/posts/$postId",
-        params: { postId: saved.id },
-      })
-      return
-    }
-    await navigate({ to: "/dashboard/posts" })
-  }
-
-  async function onDelete() {
-    if (!post) {
-      return
-    }
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = await api.posts({ postId: post.id }).delete()
-    setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not delete the post."))
-      return
-    }
-    await navigate({ to: "/dashboard/posts" })
+    })
   }
 
   return (
@@ -141,7 +137,9 @@ export function PostForm({ post }: { post?: OwnedPost }) {
               {post.viewsCounter} views
             </p>
           ) : null}
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {failure ? (
+            <p className="text-sm text-destructive">{failure}</p>
+          ) : null}
         </CardContent>
         <CardFooter className="flex gap-2">
           <Button type="submit" disabled={pending}>
@@ -152,7 +150,11 @@ export function PostForm({ post }: { post?: OwnedPost }) {
               type="button"
               variant="destructive"
               disabled={pending}
-              onClick={() => void onDelete()}
+              onClick={() => {
+                setError(null)
+                save.reset()
+                remove.mutate()
+              }}
             >
               Delete
             </Button>

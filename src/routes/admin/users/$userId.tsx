@@ -1,59 +1,10 @@
-import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router"
-import { isPostList, isSessionUser } from "@/lib/records"
-import { getTreaty } from "@api"
-
-const issueKinds = ["BAN", "SUSPEND", "LOCK"] as const
-
-export type AdminIssue = {
-  id: string
-  kind: (typeof issueKinds)[number]
-  reason: string
-  startsAt: string
-  endsAt: string | null
-  resolvedAt: string | null
-  createdAt: string
-}
-
-function isIssue(data: unknown): data is AdminIssue {
-  if (typeof data !== "object" || data === null) {
-    return false
-  }
-  if (!("id" in data) || typeof data.id !== "string") {
-    return false
-  }
-  if (!("kind" in data) || typeof data.kind !== "string") {
-    return false
-  }
-  if (!("reason" in data) || typeof data.reason !== "string") {
-    return false
-  }
-  return issueKinds.includes(data.kind as AdminIssue["kind"])
-}
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
+import { adminUserQuery } from "@/lib/queries/users"
 
 export const Route = createFileRoute("/admin/users/$userId")({
-  beforeLoad: async ({ params }) => {
-    const { api } = await getTreaty()
-    const result = await api.admin.users({ userId: params.userId }).get()
-    if (
-      result.error ||
-      typeof result.data !== "object" ||
-      !("user" in result.data) ||
-      !isSessionUser(result.data.user) ||
-      !("posts" in result.data) ||
-      !isPostList(result.data.posts) ||
-      !("issues" in result.data) ||
-      !Array.isArray(result.data.issues)
-    ) {
-      throw redirect({ to: "/admin/users" })
-    }
-    return {
-      detail: {
-        user: result.data.user,
-        posts: result.data.posts,
-        issues: result.data.issues.filter(isIssue),
-      },
-    }
-  },
+  loader: ({ context, params }) =>
+    context.queryClient.query(adminUserQuery(params.userId)),
   component: UserLayout,
 })
 
@@ -65,8 +16,9 @@ const links = [
 ] as const
 
 function UserLayout() {
-  const { detail } = Route.useRouteContext()
-  const { user } = detail
+  const { userId } = Route.useParams()
+  const { data } = useSuspenseQuery(adminUserQuery(userId))
+  const { user } = data
 
   return (
     <div className="grid gap-4 md:grid-cols-[220px_1fr]">

@@ -1,10 +1,16 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router"
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { Field, areaClassName, fieldClassName } from "@/components/field"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { errorMessage, formatTime } from "@/lib/records"
-import { getTreaty } from "@api"
+import { adminUserQuery, setUserStatus, userKeys } from "@/lib/queries/users"
+import type { AccountStatus } from "@/lib/queries/users"
+import { formatTime } from "@/lib/records"
 
 const durations = [
   ["1h", "1 hour"],
@@ -23,50 +29,63 @@ export const Route = createFileRoute("/admin/users/$userId/issues")({
   component: IssuesPage,
 })
 
-function IssuesPage() {
-  const router = useRouter()
-  const { detail } = Route.useRouteContext()
-  const [action, setAction] = useState("SUSPENDED")
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+function isStatus(value: FormDataEntryValue | null): value is AccountStatus {
+  return (
+    value === "ACTIVE" ||
+    value === "BANNED" ||
+    value === "SUSPENDED" ||
+    value === "LOCKED"
+  )
+}
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+function IssuesPage() {
+  const { userId } = Route.useParams()
+  const { data } = useSuspenseQuery(adminUserQuery(userId))
+  const queryClient = useQueryClient()
+  const [action, setAction] = useState("SUSPENDED")
+  const [formError, setFormError] = useState<string | null>(null)
+  const save = useMutation({
+    mutationFn: (input: {
+      status: AccountStatus
+      reason: string
+      lockDurationId?: string
+    }) => setUserStatus(data.user.id, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: userKeys.all }),
+  })
+
+  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
-    const form = new FormData(event.currentTarget)
-    const status = form.get("status")
-    if (
-      status !== "ACTIVE" &&
-      status !== "BANNED" &&
-      status !== "SUSPENDED" &&
-      status !== "LOCKED"
-    ) {
-      setError("Choose an account action.")
+    setFormError(null)
+    save.reset()
+    const form = event.currentTarget
+    const body = new FormData(form)
+    const status = body.get("status")
+    if (!isStatus(status)) {
+      setFormError("Choose an account action.")
       return
     }
-    const reason = form.get("reason")
-    const lockDurationId = form.get("lockDurationId")
-    setPending(true)
-    const { api } = await getTreaty()
-    const result = await api.admin
-      .users({ userId: detail.user.id })
-      .status.put({
+    const reason = body.get("reason")
+    const lockDurationId = body.get("lockDurationId")
+    save.mutate(
+      {
         status,
         reason: typeof reason === "string" ? reason : "",
         lockDurationId:
           status === "LOCKED" && typeof lockDurationId === "string"
             ? lockDurationId
             : undefined,
-      })
-    setPending(false)
-    if (result.error) {
-      setError(errorMessage(result.error, "Could not update the account."))
-      return
-    }
-    event.currentTarget.reset()
-    setAction("SUSPENDED")
-    await router.invalidate()
+      },
+      {
+        onSuccess: () => {
+          form.reset()
+          setAction("SUSPENDED")
+        },
+      }
+    )
   }
+
+  const failure =
+    formError ?? (save.error instanceof Error ? save.error.message : null)
 
   return (
     <div className="flex flex-col gap-4">
@@ -109,9 +128,11 @@ function IssuesPage() {
                 <textarea className={areaClassName} name="reason" required />
               </Field>
             )}
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving" : "Apply"}
+            {failure ? (
+              <p className="text-sm text-destructive">{failure}</p>
+            ) : null}
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? "Saving" : "Apply"}
             </Button>
           </CardContent>
         </form>
@@ -121,11 +142,11 @@ function IssuesPage() {
           <CardTitle>History</CardTitle>
         </CardHeader>
         <CardContent>
-          {detail.issues.length === 0 ? (
+          {data.issues.length === 0 ? (
             <p className="text-sm text-muted-foreground">No account issues.</p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {detail.issues.map((issue) => (
+              {data.issues.map((issue) => (
                 <li
                   key={issue.id}
                   className="rounded-2xl border border-border p-3 text-sm"
