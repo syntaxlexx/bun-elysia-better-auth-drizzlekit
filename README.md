@@ -187,3 +187,4 @@ domain.com {
 ## Links
 
 - [Vercel Deployment](https://bun-elysia-better-auth-drizzlekit.vercel.app/) -> Deployed via the `vercel` branch
+- [Custom $5 VPS - via docker](https://elysia-tanstart.acelords.com/)
