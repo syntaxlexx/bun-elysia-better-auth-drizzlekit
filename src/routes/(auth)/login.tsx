@@ -4,8 +4,12 @@ import {
   redirect,
   useNavigate,
 } from "@tanstack/react-router"
-import { KeyRound, Mail, Smartphone } from "lucide-react"
+import { cn } from "cn"
+import { Eye, EyeOff, KeyRound, Mail, Smartphone } from "lucide-react"
 import { useState } from "react"
+import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input"
+import flags from "react-phone-number-input/flags"
+import "react-phone-number-input/style.css"
 import { Field } from "@/components/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -34,6 +38,38 @@ export const Route = createFileRoute("/(auth)/login")({
 
 type Method = "email" | "code" | "phone"
 
+const phoneInputClassName =
+  "flex h-8 w-full min-w-0 items-center rounded-2xl border border-transparent bg-input/50 px-2.5 text-base text-foreground transition-[color,box-shadow] duration-200 [--PhoneInput-color--focus:var(--ring)] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30 md:text-sm [&_input]:h-full [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:p-0 [&_input]:text-inherit [&_input]:outline-none [&_input]:placeholder:text-muted-foreground"
+
+function PasswordInput({
+  className,
+  ...props
+}: React.ComponentProps<typeof Input>) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div className="relative">
+      <Input
+        {...props}
+        type={visible ? "text" : "password"}
+        className={cn("pr-8", className)}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        className="absolute top-1/2 right-1 -translate-y-1/2"
+        aria-pressed={visible}
+        onClick={() => setVisible((current) => !current)}
+      >
+        {visible ? <EyeOff /> : <Eye />}
+        <span className="sr-only">
+          {visible ? "Hide password" : "Show password"}
+        </span>
+      </Button>
+    </div>
+  )
+}
+
 function field(form: FormData, name: string) {
   const value = form.get(name)
   return typeof value === "string" ? value : ""
@@ -47,6 +83,7 @@ function LoginPage() {
   const [pending, setPending] = useState(false)
   const [emailForCode, setEmailForCode] = useState("")
   const [phoneForCode, setPhoneForCode] = useState("")
+  const [phone, setPhone] = useState<string | undefined>()
 
   async function onEmail(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -107,9 +144,12 @@ function LoginPage() {
     event.preventDefault()
     setError(null)
     setNotice(null)
+    if (!phone || !isValidPhoneNumber(phone)) {
+      setError("Enter a valid phone number.")
+      return
+    }
     setPending(true)
-    const form = new FormData(event.currentTarget)
-    const phoneNumber = field(form, "phone")
+    const phoneNumber = phone
     const result = await authClient.phoneNumber.sendOtp({ phoneNumber })
     setPending(false)
     if (result.error) {
@@ -196,9 +236,8 @@ function LoginPage() {
               <Input name="email" type="email" autoComplete="email" required />
             </Field>
             <Field label="Password">
-              <Input
+              <PasswordInput
                 name="password"
-                type="password"
                 autoComplete="current-password"
                 required
               />
@@ -253,15 +292,27 @@ function LoginPage() {
         {method === "phone" ? (
           <div className="flex flex-col gap-3">
             <form className="flex flex-col gap-3" onSubmit={sendPhoneCode}>
-              <Field label="Phone">
-                <Input
-                  name="phone"
+              <div className="flex flex-col gap-1 text-sm">
+                <label htmlFor="login-phone">Phone</label>
+                <PhoneInput
+                  international
+                  defaultCountry="US"
+                  countryCallingCodeEditable={false}
+                  limitMaxLength
+                  flags={flags}
                   autoComplete="tel"
-                  placeholder="+14155552671"
-                  defaultValue={phoneForCode}
-                  required
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={(value) => {
+                    setPhone(value)
+                    setPhoneForCode((current) =>
+                      value && value === current ? current : ""
+                    )
+                  }}
+                  numberInputProps={{ id: "login-phone" }}
+                  className={phoneInputClassName}
                 />
-              </Field>
+              </div>
               <Button type="submit" variant="outline" disabled={pending}>
                 <Smartphone data-icon="inline-start" />
                 {pending ? "Sending" : "Send phone code"}
@@ -292,7 +343,7 @@ function LoginPage() {
               </form>
             ) : (
               <p className="text-sm text-muted-foreground">
-                A new number opens an account. Use international format.
+                A new number opens an account.
               </p>
             )}
           </div>
