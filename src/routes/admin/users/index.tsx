@@ -1,16 +1,36 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
+import { Paginator } from "@/components/paginator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { adminUsersQuery } from "@/lib/queries/users"
-import { formatTime } from "@/lib/records"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { formatTime, pageFromSearch, perPageFromSearch } from "@/lib/records"
+import {
+  createFileRoute,
+  Link,
+  stripSearchParams,
+} from "@tanstack/react-router"
+import type { SearchSchemaInput } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/admin/users/")({
-  loader: ({ context }) => context.queryClient.query(adminUsersQuery()),
+  validateSearch: (
+    search: { page?: number; perPage?: number } & SearchSchemaInput
+  ) => ({
+    page: pageFromSearch(search.page),
+    perPage: perPageFromSearch(search.perPage),
+  }),
+  search: {
+    middlewares: [stripSearchParams({ page: 1, perPage: 10 })],
+  },
+  loaderDeps: ({ search }) => ({ page: search.page, perPage: search.perPage }),
+  loader: ({ context, deps }) =>
+    context.queryClient.query(adminUsersQuery(deps.page, deps.perPage)),
   component: AdminUsersPage,
 })
 
 function AdminUsersPage() {
-  const { data: users } = useSuspenseQuery(adminUsersQuery())
+  const { page, perPage } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const { data } = useSuspenseQuery(adminUsersQuery(page, perPage))
+  const users = data.items
 
   return (
     <Card>
@@ -54,6 +74,15 @@ function AdminUsersPage() {
             </tbody>
           </table>
         )}
+        <Paginator
+          meta={data.meta}
+          link={(next) => (
+            <Link to="/admin/users" search={{ page: next, perPage }} />
+          )}
+          onPerPageChange={(next) => {
+            void navigate({ search: { page: 1, perPage: next } })
+          }}
+        />
       </CardContent>
     </Card>
   )

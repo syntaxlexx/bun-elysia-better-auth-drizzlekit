@@ -2,6 +2,7 @@ import { Elysia, t } from "elysia"
 import { resources } from "../api-resources/index.ts"
 import { requireAdmin } from "../auth/guard.ts"
 import { run } from "../http.ts"
+import { pageQuery, readPage } from "../pagination.ts"
 import { listAllPosts, listPostsByAuthor } from "../services/post-service.ts"
 import {
   adminSetPassword,
@@ -26,27 +27,30 @@ const status = t.Union([
 ])
 
 export const adminRoutes = new Elysia()
-  .get("/admin/users", ({ request, set }) =>
-    run(set, async () => {
-      await requireAdmin(request)
-      return (await listUsers()).map(resources.users.userResource)
-    })
+  .get(
+    "/admin/users",
+    ({ query, request, set }) =>
+      run(set, async () => {
+        await requireAdmin(request)
+        const page = await listUsers(readPage(query))
+        return {
+          items: page.items.map(resources.users.userResource),
+          meta: page.meta,
+        }
+      }),
+    { query: pageQuery }
   )
   .get("/admin/users/:userId", ({ params, request, set }) =>
     run(set, async () => {
-      const actor = await requireAdmin(request)
+      await requireAdmin(request)
       const user = await getById(params.userId)
       if (!user) {
         set.status = 404
         return { ok: false as const, message: "User not found." }
       }
-      const [userPosts, issues] = await Promise.all([
-        listPostsByAuthor(actor, params.userId),
-        listAccountIssues(params.userId),
-      ])
+      const issues = await listAccountIssues(params.userId)
       return {
         user: resources.users.userResource(user),
-        posts: userPosts.map(resources.posts.postPublicResource),
         issues: issues.map(resources.accountIssues.accountIssueResource),
       }
     })
@@ -93,9 +97,38 @@ export const adminRoutes = new Elysia()
       }),
     }
   )
-  .get("/admin/posts", ({ request, set }) =>
-    run(set, async () => {
-      const actor = await requireAdmin(request)
-      return (await listAllPosts(actor)).map(resources.posts.postPublicResource)
-    })
+  .get(
+    "/admin/users/:userId/posts",
+    ({ params, query, request, set }) =>
+      run(set, async () => {
+        const actor = await requireAdmin(request)
+        const user = await getById(params.userId)
+        if (!user) {
+          set.status = 404
+          return { ok: false as const, message: "User not found." }
+        }
+        const page = await listPostsByAuthor(
+          actor,
+          params.userId,
+          readPage(query)
+        )
+        return {
+          items: page.items.map(resources.posts.postPublicResource),
+          meta: page.meta,
+        }
+      }),
+    { query: pageQuery }
+  )
+  .get(
+    "/admin/posts",
+    ({ query, request, set }) =>
+      run(set, async () => {
+        const actor = await requireAdmin(request)
+        const page = await listAllPosts(actor, readPage(query))
+        return {
+          items: page.items.map(resources.posts.postPublicResource),
+          meta: page.meta,
+        }
+      }),
+    { query: pageQuery }
   )

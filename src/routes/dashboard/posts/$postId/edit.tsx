@@ -1,13 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { PostForm } from "@/components/post-form"
 import { Button } from "@/components/ui/button"
-import { ownPostsQuery } from "@/lib/queries/posts"
+import { postDetailQuery } from "@/lib/queries/posts"
 import { createFileRoute, Link, notFound } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/dashboard/posts/$postId/edit")({
   loader: async ({ context, params }) => {
-    const posts = await context.queryClient.query(ownPostsQuery())
-    if (!posts.some((item) => item.id === params.postId)) {
+    const post = await context.queryClient.query(postDetailQuery(params.postId))
+    if (post.authorId !== context.user.id) {
       throw notFound()
     }
   },
@@ -16,9 +16,9 @@ export const Route = createFileRoute("/dashboard/posts/$postId/edit")({
 
 function EditPostPage() {
   const { postId } = Route.useParams()
-  const { data: posts } = useSuspenseQuery(ownPostsQuery())
-  const post = posts.find((item) => item.id === postId)
-  if (!post) {
+  const { user } = Route.useRouteContext()
+  const { data: post } = useSuspenseQuery(postDetailQuery(postId))
+  if (post.authorId !== user.id) {
     throw notFound()
   }
 

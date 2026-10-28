@@ -1,8 +1,8 @@
 import { queryOptions } from "@tanstack/react-query"
 import { redirect } from "@tanstack/react-router"
 import { getTreaty } from "@api"
-import { isPostList, isSessionUser } from "@/lib/records"
-import type { PostSummary, SessionUser } from "@/lib/records"
+import { isPage, isSessionUser, pageQuery } from "@/lib/records"
+import type { Page, SessionUser } from "@/lib/records"
 import { reject, unwrap } from "@/lib/queries/api"
 
 const issueKinds = ["BAN", "SUSPEND", "LOCK"] as const
@@ -19,7 +19,6 @@ export type AdminIssue = {
 
 export type AdminUserDetail = {
   user: SessionUser
-  posts: Array<PostSummary>
   issues: Array<AdminIssue>
 }
 
@@ -57,16 +56,20 @@ function isIssue(data: unknown): data is AdminIssue {
   return issueKinds.includes(data.kind as AdminIssue["kind"])
 }
 
-export function adminUsersQuery() {
+function isUserPage(data: unknown): data is Page<SessionUser> {
+  return isPage(data, isSessionUser)
+}
+
+export function adminUsersQuery(page: number, perPage: number) {
   return queryOptions({
-    queryKey: userKeys.list,
+    queryKey: [...userKeys.list, page, perPage],
     queryFn: async () => {
       const { api } = await getTreaty()
-      const result = await api.admin.users.get()
-      if (result.error || !Array.isArray(result.data)) {
-        throw new Error("Could not load users.")
-      }
-      return result.data.filter(isSessionUser)
+      return unwrap(
+        await api.admin.users.get({ query: pageQuery(page, perPage) }),
+        isUserPage,
+        "Could not load users."
+      )
     },
   })
 }
@@ -82,8 +85,6 @@ export function adminUserQuery(userId: string) {
         typeof result.data !== "object" ||
         !("user" in result.data) ||
         !isSessionUser(result.data.user) ||
-        !("posts" in result.data) ||
-        !isPostList(result.data.posts) ||
         !("issues" in result.data) ||
         !Array.isArray(result.data.issues)
       ) {
@@ -91,7 +92,6 @@ export function adminUserQuery(userId: string) {
       }
       return {
         user: result.data.user,
-        posts: result.data.posts,
         issues: result.data.issues.filter(isIssue),
       }
     },

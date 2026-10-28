@@ -132,26 +132,74 @@ export type OwnedPost = PostSummary & {
 }
 
 export type PostDetail = OwnedPost & {
-  comments: Array<{
-    id: string
-    body: string
-    authorId: string
-    authorName: string
-    createdAt: string
-  }>
   rating: {
     average: number | null
     count: number
     mine: number | null
     myReview: string | null
-    reviews: Array<{
-      id: string
-      score: number
-      review: string | null
-      userId: string
-      authorName: string
-      createdAt: string
-    }>
+  }
+}
+
+export type CommentItem = {
+  id: string
+  body: string
+  authorId: string
+  authorName: string
+  createdAt: string
+}
+
+export type ReviewItem = {
+  id: string
+  score: number
+  review: string | null
+  userId: string
+  authorName: string
+  createdAt: string
+}
+
+export type PageMeta = {
+  currentPage: number
+  perPage: number
+  from: number | null
+  to: number | null
+  total: number
+  lastPage: number
+}
+
+export type Page<T> = {
+  items: Array<T>
+  meta: PageMeta
+}
+
+export const pageSizes = [10, 20, 50] as const
+export type PageSize = (typeof pageSizes)[number]
+export const defaultPageSize: PageSize = 10
+
+export function pageFromSearch(value: unknown) {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return 1
+  }
+  const page = typeof value === "number" ? value : Number(value)
+  if (!Number.isInteger(page) || page < 1) {
+    return 1
+  }
+  return page
+}
+
+export function perPageFromSearch(value: unknown): PageSize {
+  if (value === 10 || value === 20 || value === 50) {
+    return value
+  }
+  if (value === "10" || value === "20" || value === "50") {
+    return Number(value) as PageSize
+  }
+  return defaultPageSize
+}
+
+export function pageQuery(page: number, perPage: number) {
+  return {
+    ...(page > 1 ? { page: String(page) } : {}),
+    ...(perPage === defaultPageSize ? {} : { limit: String(perPage) }),
   }
 }
 
@@ -197,6 +245,55 @@ export function isOwnedPost(data: unknown): data is OwnedPost {
 
 export function isOwnedPostList(data: unknown): data is Array<OwnedPost> {
   return Array.isArray(data) && data.every(isOwnedPost)
+}
+
+export function isPageMeta(data: unknown): data is PageMeta {
+  if (!isRecord(data)) {
+    return false
+  }
+  return (
+    typeof data.currentPage === "number" &&
+    typeof data.perPage === "number" &&
+    (data.from === null || typeof data.from === "number") &&
+    (data.to === null || typeof data.to === "number") &&
+    typeof data.total === "number" &&
+    typeof data.lastPage === "number"
+  )
+}
+
+export function isPage<T>(
+  data: unknown,
+  isItem: (item: unknown) => item is T
+): data is Page<T> {
+  return (
+    isRecord(data) &&
+    Array.isArray(data.items) &&
+    data.items.every(isItem) &&
+    isPageMeta(data.meta)
+  )
+}
+
+export function isCommentItem(data: unknown): data is CommentItem {
+  return (
+    isRecord(data) &&
+    typeof data.id === "string" &&
+    typeof data.body === "string" &&
+    typeof data.authorId === "string" &&
+    typeof data.authorName === "string" &&
+    typeof data.createdAt === "string"
+  )
+}
+
+export function isReviewItem(data: unknown): data is ReviewItem {
+  return (
+    isRecord(data) &&
+    typeof data.id === "string" &&
+    typeof data.score === "number" &&
+    (data.review === null || typeof data.review === "string") &&
+    typeof data.userId === "string" &&
+    typeof data.authorName === "string" &&
+    typeof data.createdAt === "string"
+  )
 }
 
 export type Room = {
@@ -311,11 +408,8 @@ export function isPostDetail(data: unknown): data is PostDetail {
     return false
   }
   return (
-    "comments" in data &&
-    Array.isArray(data.comments) &&
     typeof data.rating.count === "number" &&
-    (data.rating.myReview === null ||
-      typeof data.rating.myReview === "string") &&
-    Array.isArray(data.rating.reviews)
+    (data.rating.mine === null || typeof data.rating.mine === "number") &&
+    (data.rating.myReview === null || typeof data.rating.myReview === "string")
   )
 }

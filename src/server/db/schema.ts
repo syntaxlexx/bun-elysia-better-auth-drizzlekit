@@ -56,6 +56,7 @@ export const users = pgTable(
   (table) => [
     uniqueIndex("users_email_unique").on(table.email),
     uniqueIndex("users_phone_unique").on(table.phoneNumber),
+    index("users_created_idx").on(table.createdAt.desc(), table.id.desc()),
   ]
 )
 
@@ -150,41 +151,68 @@ export const accountIssues = pgTable("account_issues", {
     .defaultNow(),
 })
 
-export const posts = pgTable("posts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  authorId: uuid("author_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  body: jsonb("body").$type<Array<Record<string, unknown>>>().notNull(),
-  viewsCounter: integer("views_counter").notNull().default(0),
-  averageRatings: doublePrecision("average_ratings"),
-  status: postStatus("status").notNull().default("DRAFT"),
-  publishedAt: timestamp("published_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
+export const posts = pgTable(
+  "posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: jsonb("body").$type<Array<Record<string, unknown>>>().notNull(),
+    viewsCounter: integer("views_counter").notNull().default(0),
+    averageRatings: doublePrecision("average_ratings"),
+    status: postStatus("status").notNull().default("DRAFT"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("posts_public_shelf_idx")
+      .on(
+        sql`coalesce(${table.publishedAt}, ${table.createdAt}) desc`,
+        sql`${table.id} desc`
+      )
+      .where(sql`${table.status} = 'PUBLISHED'`),
+    index("posts_updated_idx").on(table.updatedAt.desc(), table.id.desc()),
+    index("posts_author_updated_idx").on(
+      table.authorId,
+      table.updatedAt.desc(),
+      table.id.desc()
+    ),
+  ]
+)
 
-export const comments = pgTable("comments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  postId: uuid("post_id")
-    .notNull()
-    .references(() => posts.id, { onDelete: "cascade" }),
-  authorId: uuid("author_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  body: text("body").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
+export const comments = pgTable(
+  "comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("comments_post_created_idx").on(
+      table.postId,
+      table.createdAt,
+      table.id
+    ),
+  ]
+)
 
 export const ratings = pgTable(
   "ratings",
@@ -204,6 +232,11 @@ export const ratings = pgTable(
   },
   (table) => [
     uniqueIndex("ratings_post_user_unique").on(table.postId, table.userId),
+    index("ratings_post_created_idx").on(
+      table.postId,
+      table.createdAt.desc(),
+      table.id.desc()
+    ),
     check(
       "ratings_score_range",
       sql`${table.score} >= 1 and ${table.score} <= 5`

@@ -2,13 +2,16 @@ import { Elysia, t } from "elysia"
 import { resources } from "../api-resources/index.ts"
 import { readActor, requireActiveUser } from "../auth/guard.ts"
 import { run } from "../http.ts"
+import { pageQuery, readPage } from "../pagination.ts"
 import {
   addComment,
   createPost,
   deletePost,
   getPost,
+  listComments,
   listOwnPosts,
   listPublicPosts,
+  listReviews,
   ratePost,
   updatePost,
 } from "../services/post-service.ts"
@@ -21,8 +24,17 @@ const postBody = t.Object({
 })
 
 export const postRoutes = new Elysia()
-  .get("/posts", async () =>
-    (await listPublicPosts()).map(resources.posts.postPublicResource)
+  .get(
+    "/posts",
+    ({ query, set }) =>
+      run(set, async () => {
+        const page = await listPublicPosts(readPage(query))
+        return {
+          items: page.items.map(resources.posts.postPublicResource),
+          meta: page.meta,
+        }
+      }),
+    { query: pageQuery }
   )
   .get("/posts/:postId", ({ params, request, set }) =>
     run(set, async () =>
@@ -60,12 +72,52 @@ export const postRoutes = new Elysia()
       deletePost(await requireActiveUser(request), params.postId)
     )
   )
-  .get("/me/posts", ({ request, set }) =>
-    run(set, async () =>
-      (await listOwnPosts(await requireActiveUser(request))).map(
-        resources.posts.postResource
-      )
-    )
+  .get(
+    "/me/posts",
+    ({ query, request, set }) =>
+      run(set, async () => {
+        const page = await listOwnPosts(
+          await requireActiveUser(request),
+          readPage(query)
+        )
+        return {
+          items: page.items.map(resources.posts.postResource),
+          meta: page.meta,
+        }
+      }),
+    { query: pageQuery }
+  )
+  .get(
+    "/posts/:postId/comments",
+    ({ params, query, request, set }) =>
+      run(set, async () => {
+        const page = await listComments(
+          await readActor(request),
+          params.postId,
+          readPage(query)
+        )
+        return {
+          items: page.items.map(resources.comments.commentResource),
+          meta: page.meta,
+        }
+      }),
+    { query: pageQuery }
+  )
+  .get(
+    "/posts/:postId/reviews",
+    ({ params, query, request, set }) =>
+      run(set, async () => {
+        const page = await listReviews(
+          await readActor(request),
+          params.postId,
+          readPage(query)
+        )
+        return {
+          items: page.items.map(resources.ratings.reviewResource),
+          meta: page.meta,
+        }
+      }),
+    { query: pageQuery }
   )
   .post(
     "/posts/:postId/comments",

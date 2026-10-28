@@ -1,15 +1,39 @@
 import { queryOptions } from "@tanstack/react-query"
 import { notFound } from "@tanstack/react-router"
 import { getTreaty } from "@api"
-import { isOwnedPostList, isPostDetail, isPostList } from "@/lib/records"
+import {
+  isCommentItem,
+  isOwnedPost,
+  isPage,
+  isPostDetail,
+  isPostSummary,
+  isReviewItem,
+  pageQuery,
+} from "@/lib/records"
+import type {
+  CommentItem,
+  OwnedPost,
+  Page,
+  PostSummary,
+  ReviewItem,
+} from "@/lib/records"
 import { reject, unwrap } from "@/lib/queries/api"
 
 export const postKeys = {
   all: ["posts"] as const,
-  publicList: ["posts", "public"] as const,
-  mine: ["posts", "mine"] as const,
-  admin: ["posts", "admin"] as const,
+  publicList: (page: number, perPage: number) =>
+    ["posts", "public", page, perPage] as const,
+  mine: (page: number, perPage: number) =>
+    ["posts", "mine", page, perPage] as const,
+  admin: (page: number, perPage: number) =>
+    ["posts", "admin", page, perPage] as const,
+  author: (userId: string, page: number, perPage: number) =>
+    ["posts", "author", userId, page, perPage] as const,
   detail: (postId: string) => ["posts", "detail", postId] as const,
+  comments: (postId: string, page: number, perPage: number) =>
+    ["posts", "comments", postId, page, perPage] as const,
+  reviews: (postId: string, page: number, perPage: number) =>
+    ["posts", "reviews", postId, page, perPage] as const,
 }
 
 export type PostWrite = {
@@ -19,39 +43,119 @@ export type PostWrite = {
   publishedAt: string | null
 }
 
-export function publicPostsQuery() {
+function isPostPage(data: unknown): data is Page<PostSummary> {
+  return isPage(data, isPostSummary)
+}
+
+function isOwnedPostPage(data: unknown): data is Page<OwnedPost> {
+  return isPage(data, isOwnedPost)
+}
+
+function isCommentPage(data: unknown): data is Page<CommentItem> {
+  return isPage(data, isCommentItem)
+}
+
+function isReviewPage(data: unknown): data is Page<ReviewItem> {
+  return isPage(data, isReviewItem)
+}
+
+export function publicPostsQuery(page: number, perPage: number) {
   return queryOptions({
-    queryKey: postKeys.publicList,
+    queryKey: postKeys.publicList(page, perPage),
     queryFn: async () => {
       const { api } = await getTreaty()
-      return unwrap(await api.posts.get(), isPostList, "Could not load posts.")
+      return unwrap(
+        await api.posts.get({ query: pageQuery(page, perPage) }),
+        isPostPage,
+        "Could not load posts."
+      )
     },
   })
 }
 
-export function ownPostsQuery() {
+export function ownPostsQuery(page: number, perPage: number) {
   return queryOptions({
-    queryKey: postKeys.mine,
+    queryKey: postKeys.mine(page, perPage),
     queryFn: async () => {
       const { api } = await getTreaty()
       return unwrap(
-        await api.me.posts.get(),
-        isOwnedPostList,
+        await api.me.posts.get({ query: pageQuery(page, perPage) }),
+        isOwnedPostPage,
         "Could not load your posts."
       )
     },
   })
 }
 
-export function adminPostsQuery() {
+export function adminPostsQuery(page: number, perPage: number) {
   return queryOptions({
-    queryKey: postKeys.admin,
+    queryKey: postKeys.admin(page, perPage),
     queryFn: async () => {
       const { api } = await getTreaty()
       return unwrap(
-        await api.admin.posts.get(),
-        isPostList,
+        await api.admin.posts.get({ query: pageQuery(page, perPage) }),
+        isPostPage,
         "Could not load posts."
+      )
+    },
+  })
+}
+
+export function authorPostsQuery(
+  userId: string,
+  page: number,
+  perPage: number
+) {
+  return queryOptions({
+    queryKey: postKeys.author(userId, page, perPage),
+    queryFn: async () => {
+      const { api } = await getTreaty()
+      return unwrap(
+        await api.admin
+          .users({ userId })
+          .posts.get({ query: pageQuery(page, perPage) }),
+        isPostPage,
+        "Could not load posts."
+      )
+    },
+  })
+}
+
+export function postCommentsQuery(
+  postId: string,
+  page: number,
+  perPage: number
+) {
+  return queryOptions({
+    queryKey: postKeys.comments(postId, page, perPage),
+    queryFn: async () => {
+      const { api } = await getTreaty()
+      return unwrap(
+        await api
+          .posts({ postId })
+          .comments.get({ query: pageQuery(page, perPage) }),
+        isCommentPage,
+        "Could not load comments."
+      )
+    },
+  })
+}
+
+export function postReviewsQuery(
+  postId: string,
+  page: number,
+  perPage: number
+) {
+  return queryOptions({
+    queryKey: postKeys.reviews(postId, page, perPage),
+    queryFn: async () => {
+      const { api } = await getTreaty()
+      return unwrap(
+        await api
+          .posts({ postId })
+          .reviews.get({ query: pageQuery(page, perPage) }),
+        isReviewPage,
+        "Could not load reviews."
       )
     },
   })

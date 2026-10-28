@@ -3,9 +3,15 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Link,
+  stripSearchParams,
+} from "@tanstack/react-router"
+import type { SearchSchemaInput } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { Field } from "@/components/field"
+import { Paginator } from "@/components/paginator"
 import { PostEditor } from "@/components/post-editor"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -13,17 +19,68 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import {
   addPostComment,
+  postCommentsQuery,
   postDetailQuery,
   postKeys,
+  postReviewsQuery,
   ratePost,
 } from "@/lib/queries/posts"
-import type { SessionUser, PostDetail } from "@/lib/records"
-import { formatDate, isoDate } from "@/lib/records"
+import type {
+  CommentItem,
+  Page,
+  PostDetail,
+  ReviewItem,
+  SessionUser,
+} from "@/lib/records"
+import {
+  formatDate,
+  isoDate,
+  pageFromSearch,
+  perPageFromSearch,
+} from "@/lib/records"
 
 export const Route = createFileRoute("/(frontend)/posts/$postId")({
-  loader: async ({ params, context }) => ({
-    post: await context.queryClient.query(postDetailQuery(params.postId)),
+  validateSearch: (
+    search: {
+      commentPage?: number
+      reviewPage?: number
+      commentPerPage?: number
+      reviewPerPage?: number
+    } & SearchSchemaInput
+  ) => ({
+    commentPage: pageFromSearch(search.commentPage),
+    reviewPage: pageFromSearch(search.reviewPage),
+    commentPerPage: perPageFromSearch(search.commentPerPage),
+    reviewPerPage: perPageFromSearch(search.reviewPerPage),
   }),
+  search: {
+    middlewares: [
+      stripSearchParams({
+        commentPage: 1,
+        reviewPage: 1,
+        commentPerPage: 10,
+        reviewPerPage: 10,
+      }),
+    ],
+  },
+  loaderDeps: ({ search }) => ({
+    commentPage: search.commentPage,
+    reviewPage: search.reviewPage,
+    commentPerPage: search.commentPerPage,
+    reviewPerPage: search.reviewPerPage,
+  }),
+  loader: async ({ params, context, deps }) => {
+    const post = await context.queryClient.query(postDetailQuery(params.postId))
+    await Promise.all([
+      context.queryClient.query(
+        postCommentsQuery(params.postId, deps.commentPage, deps.commentPerPage)
+      ),
+      context.queryClient.query(
+        postReviewsQuery(params.postId, deps.reviewPage, deps.reviewPerPage)
+      ),
+    ])
+    return { post }
+  },
   head: ({ loaderData }) => ({
     meta: [
       {
@@ -36,8 +93,16 @@ export const Route = createFileRoute("/(frontend)/posts/$postId")({
 
 function PublicPostPage() {
   const { postId } = Route.useParams()
+  const { commentPage, reviewPage, commentPerPage, reviewPerPage } =
+    Route.useSearch()
   const { user } = Route.useRouteContext()
   const { data: post } = useSuspenseQuery(postDetailQuery(postId))
+  const { data: comments } = useSuspenseQuery(
+    postCommentsQuery(postId, commentPage, commentPerPage)
+  )
+  const { data: reviews } = useSuspenseQuery(
+    postReviewsQuery(postId, reviewPage, reviewPerPage)
+  )
   const when = post.publishedAt ?? post.createdAt
   const date = formatDate(when)
 
@@ -64,19 +129,23 @@ function PublicPostPage() {
         </header>
         <PostEditor initial={post.body} editable={false} plain />
       </article>
-      <Reviews post={post} user={user} />
-      <Comments post={post} user={user} />
+      <Reviews post={post} reviews={reviews} user={user} />
+      <Comments post={post} comments={comments} user={user} />
     </div>
   )
 }
 
 function Reviews({
   post,
+  reviews,
   user,
 }: {
   post: PostDetail
+  reviews: Page<ReviewItem>
   user: SessionUser | null
 }) {
+  const { commentPage, commentPerPage, reviewPerPage } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string | null>(null)
   const [score, setScore] = useState<number | null>(post.rating.mine)
@@ -91,8 +160,12 @@ function Reviews({
       }
       return ratePost(post.id, score, review)
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: postKeys.detail(post.id) }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: postKeys.detail(post.id) })
+      void queryClient.invalidateQueries({
+        queryKey: ["posts", "reviews", post.id],
+      })
+    },
   })
   const failure =
     formError ?? (save.error instanceof Error ? save.error.message : null)
@@ -129,9 +202,9 @@ function Reviews({
         </p>
       </div>
       <Separator />
-      {post.rating.reviews.length > 0 ? (
+      {reviews.items.length > 0 ? (
         <div className="flex flex-col">
-          {post.rating.reviews.map((entry) => (
+          {reviews.items.map((entry) => (
             <article key={entry.id} className="flex flex-col gap-2">
               <div className="flex flex-col gap-2 py-6">
                 <p className="font-medium">{entry.authorName}</p>
@@ -148,6 +221,31 @@ function Reviews({
               <Separator />
             </article>
           ))}
+          <Paginator
+            meta={reviews.meta}
+            link={(next) => (
+              <Link
+                to="/posts/$postId"
+                params={{ postId: post.id }}
+                search={{
+                  commentPage,
+                  commentPerPage,
+                  reviewPage: next,
+                  reviewPerPage,
+                }}
+              />
+            )}
+            onPerPageChange={(next) => {
+              void navigate({
+                search: {
+                  commentPage,
+                  commentPerPage,
+                  reviewPage: 1,
+                  reviewPerPage: next,
+                },
+              })
+            }}
+          />
         </div>
       ) : null}
       {canParticipate ? (
@@ -207,20 +305,26 @@ function Reviews({
 
 function Comments({
   post,
+  comments,
   user,
 }: {
   post: PostDetail
+  comments: Page<CommentItem>
   user: SessionUser | null
 }) {
+  const { reviewPage, commentPerPage, reviewPerPage } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
   const canParticipate = user?.status === "ACTIVE"
-  const count = post.comments.length
+  const count = comments.meta.total
   const heading =
     count === 0 ? "Comments" : count === 1 ? "1 comment" : `${count} comments`
   const save = useMutation({
     mutationFn: (body: string) => addPostComment(post.id, body),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: postKeys.detail(post.id) }),
+      queryClient.invalidateQueries({
+        queryKey: ["posts", "comments", post.id],
+      }),
   })
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -251,7 +355,7 @@ function Comments({
         <p className="text-sm text-muted-foreground">No comments yet.</p>
       ) : (
         <div className="flex flex-col">
-          {post.comments.map((comment) => (
+          {comments.items.map((comment) => (
             <article key={comment.id} className="flex flex-col gap-2">
               <div className="flex flex-col gap-2 py-6">
                 <p className="font-medium">{comment.authorName}</p>
@@ -265,6 +369,31 @@ function Comments({
               <Separator />
             </article>
           ))}
+          <Paginator
+            meta={comments.meta}
+            link={(next) => (
+              <Link
+                to="/posts/$postId"
+                params={{ postId: post.id }}
+                search={{
+                  reviewPage,
+                  reviewPerPage,
+                  commentPage: next,
+                  commentPerPage,
+                }}
+              />
+            )}
+            onPerPageChange={(next) => {
+              void navigate({
+                search: {
+                  reviewPage,
+                  reviewPerPage,
+                  commentPage: 1,
+                  commentPerPage: next,
+                },
+              })
+            }}
+          />
         </div>
       )}
       {canParticipate ? (

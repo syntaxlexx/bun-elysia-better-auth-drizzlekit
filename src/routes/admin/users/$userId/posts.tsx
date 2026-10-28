@@ -1,16 +1,39 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Link,
+  stripSearchParams,
+} from "@tanstack/react-router"
+import type { SearchSchemaInput } from "@tanstack/react-router"
+import { Paginator } from "@/components/paginator"
 import { PostTable } from "@/components/post-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { adminUserQuery } from "@/lib/queries/users"
+import { authorPostsQuery } from "@/lib/queries/posts"
+import { pageFromSearch, perPageFromSearch } from "@/lib/records"
 
 export const Route = createFileRoute("/admin/users/$userId/posts")({
+  validateSearch: (
+    search: { page?: number; perPage?: number } & SearchSchemaInput
+  ) => ({
+    page: pageFromSearch(search.page),
+    perPage: perPageFromSearch(search.perPage),
+  }),
+  search: {
+    middlewares: [stripSearchParams({ page: 1, perPage: 10 })],
+  },
+  loaderDeps: ({ search }) => ({ page: search.page, perPage: search.perPage }),
+  loader: ({ context, params, deps }) =>
+    context.queryClient.query(
+      authorPostsQuery(params.userId, deps.page, deps.perPage)
+    ),
   component: UserPostsPage,
 })
 
 function UserPostsPage() {
   const { userId } = Route.useParams()
-  const { data } = useSuspenseQuery(adminUserQuery(userId))
+  const { page, perPage } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const { data } = useSuspenseQuery(authorPostsQuery(userId, page, perPage))
 
   return (
     <Card>
@@ -18,7 +41,22 @@ function UserPostsPage() {
         <CardTitle>Posts posted</CardTitle>
       </CardHeader>
       <CardContent>
-        <PostTable posts={data.posts} mode="public" />
+        <PostTable posts={data.items} mode="public" />
+        <Paginator
+          meta={data.meta}
+          link={(next) => (
+            <Link
+              to="/admin/users/$userId/posts"
+              params={{ userId }}
+              search={{ page: next, perPage }}
+            />
+          )}
+          onPerPageChange={(next) => {
+            void navigate({
+              search: { page: 1, perPage: next },
+            })
+          }}
+        />
       </CardContent>
     </Card>
   )

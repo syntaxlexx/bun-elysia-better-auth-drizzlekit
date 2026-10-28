@@ -1,7 +1,9 @@
-import { and, asc, desc, eq, isNull, lte, or, sql } from "drizzle-orm"
+import { and, asc, count, desc, eq, isNull, lte, or, sql } from "drizzle-orm"
 import type { SQL } from "drizzle-orm"
 import { db } from "../db/index.ts"
 import { comments, posts, ratings, users } from "../db/schema.ts"
+import { asCount, offsetFor, toPage } from "../pagination.ts"
+import type { PageRequest } from "../pagination.ts"
 import { ServiceError } from "./errors.ts"
 
 type UserRow = typeof users.$inferSelect
@@ -150,47 +152,30 @@ function storedAverage(value: number | string | null | undefined) {
 }
 
 async function ratingFor(postId: string, actor: UserRow | null) {
-  const [postRows, reviewRows] = await Promise.all([
+  const [postRows, totals, mineRows] = await Promise.all([
     db
       .select({ averageRatings: posts.averageRatings })
       .from(posts)
       .where(eq(posts.id, postId))
       .limit(1),
     db
-      .select({
-        id: ratings.id,
-        score: ratings.score,
-        review: ratings.review,
-        userId: ratings.userId,
-        createdAt: ratings.createdAt,
-        fname: users.fname,
-        lname: users.lname,
-      })
+      .select({ value: count() })
       .from(ratings)
-      .innerJoin(users, eq(ratings.userId, users.id))
-      .where(eq(ratings.postId, postId))
-      .orderBy(desc(ratings.createdAt)),
+      .where(eq(ratings.postId, postId)),
+    actor
+      ? db
+          .select({ score: ratings.score, review: ratings.review })
+          .from(ratings)
+          .where(and(eq(ratings.postId, postId), eq(ratings.userId, actor.id)))
+          .limit(1)
+      : Promise.resolve([]),
   ])
-  const mine = actor
-    ? reviewRows.find((row) => row.userId === actor.id)
-    : undefined
+  const mine = first(mineRows)
   return {
     average: storedAverage(first(postRows)?.averageRatings),
-    count: reviewRows.length,
+    count: asCount(first(totals)?.value),
     mine: mine?.score ?? null,
     myReview: mine?.review ?? null,
-    reviews: reviewRows.map((row) => ({
-      id: row.id,
-      score: row.score,
-      review: row.review,
-      userId: row.userId,
-      createdAt: row.createdAt,
-      author: {
-        id: row.userId,
-        fname: row.fname,
-        lname: row.lname,
-      },
-    })),
   }
 }
 
@@ -210,28 +195,17 @@ async function refreshAverageRatings(
     .where(eq(posts.id, postId))
 }
 
-async function commentsFor(postId: string) {
-  return db
-    .select({
-      comment: comments,
-      author: {
-        id: users.id,
-        fname: users.fname,
-        lname: users.lname,
-      },
-    })
-    .from(comments)
-    .innerJoin(users, eq(comments.authorId, users.id))
-    .where(eq(comments.postId, postId))
-    .orderBy(asc(comments.createdAt))
+async function detailFor(row: PostWithAuthor, actor: UserRow | null) {
+  return { ...row, rating: await ratingFor(row.post.id, actor) }
 }
 
-async function detailFor(row: PostWithAuthor, actor: UserRow | null) {
-  const [postComments, rating] = await Promise.all([
-    commentsFor(row.post.id),
-    ratingFor(row.post.id, actor),
-  ])
-  return { ...row, comments: postComments, rating }
+async function visiblePost(actor: UserRow | null, postId: string) {
+  const row = await findPost(postId)
+  const now = new Date()
+  if (!row || !canRead(row.post, actor, now)) {
+    throw missingPost()
+  }
+  return row
 }
 
 export async function createPost(actor: UserRow, input: PostInput) {
@@ -287,15 +261,43 @@ export async function deletePost(actor: UserRow, postId: string) {
   return { ok: true as const }
 }
 
-export async function listOwnPosts(actor: UserRow) {
-  assertActive(actor)
-  const rows = await postQuery(eq(posts.authorId, actor.id)).orderBy(
-    desc(posts.updatedAt)
-  )
-  return rows
+async function countPosts(filter?: SQL) {
+  const base = db.select({ value: count() }).from(posts)
+  const rows = await (filter ? base.where(filter) : base)
+  return asCount(first(rows)?.value)
 }
 
-export async function listPostsByAuthor(actor: UserRow, authorId: string) {
+async function loadPostPage(
+  filter: SQL | undefined,
+  request: PageRequest,
+  ordered: (offset: number) => Promise<Array<PostWithAuthor>>
+) {
+  const total = await countPosts(filter)
+  const offset = offsetFor(request, total)
+  const items = total === 0 ? [] : await ordered(offset)
+  return toPage(request, total, items)
+}
+
+function byUpdated(offset: number, perPage: number, filter?: SQL) {
+  return postQuery(filter)
+    .orderBy(desc(posts.updatedAt), desc(posts.id))
+    .limit(perPage)
+    .offset(offset)
+}
+
+export async function listOwnPosts(actor: UserRow, request: PageRequest) {
+  assertActive(actor)
+  const filter = eq(posts.authorId, actor.id)
+  return loadPostPage(filter, request, (offset) =>
+    byUpdated(offset, request.perPage, filter)
+  )
+}
+
+export async function listPostsByAuthor(
+  actor: UserRow,
+  authorId: string,
+  request: PageRequest
+) {
   assertActive(actor)
   if (actor.id !== authorId && actor.role !== "ADMIN") {
     throw new ServiceError(403, {
@@ -303,13 +305,13 @@ export async function listPostsByAuthor(actor: UserRow, authorId: string) {
       message: "You cannot view these posts.",
     })
   }
-  const rows = await postQuery(eq(posts.authorId, authorId)).orderBy(
-    desc(posts.updatedAt)
+  const filter = eq(posts.authorId, authorId)
+  return loadPostPage(filter, request, (offset) =>
+    byUpdated(offset, request.perPage, filter)
   )
-  return rows
 }
 
-export async function listAllPosts(actor: UserRow) {
+export async function listAllPosts(actor: UserRow, request: PageRequest) {
   assertActive(actor)
   if (actor.role !== "ADMIN") {
     throw new ServiceError(403, {
@@ -317,18 +319,95 @@ export async function listAllPosts(actor: UserRow) {
       message: "Admin access is required.",
     })
   }
-  return postQuery().orderBy(desc(posts.updatedAt))
+  return loadPostPage(undefined, request, (offset) =>
+    byUpdated(offset, request.perPage)
+  )
 }
 
-export async function listPublicPosts() {
+export async function listPublicPosts(request: PageRequest) {
   const now = new Date()
-  const rows = await postQuery(
-    and(
-      eq(posts.status, "PUBLISHED"),
-      or(isNull(posts.publishedAt), lte(posts.publishedAt, now))
-    )
-  ).orderBy(desc(sql`coalesce(${posts.publishedAt}, ${posts.createdAt})`))
-  return rows
+  const filter = and(
+    eq(posts.status, "PUBLISHED"),
+    or(isNull(posts.publishedAt), lte(posts.publishedAt, now))
+  )
+  return loadPostPage(filter, request, (offset) =>
+    postQuery(filter)
+      .orderBy(
+        desc(sql`coalesce(${posts.publishedAt}, ${posts.createdAt})`),
+        desc(posts.id)
+      )
+      .limit(request.perPage)
+      .offset(offset)
+  )
+}
+
+export async function listComments(
+  actor: UserRow | null,
+  postId: string,
+  request: PageRequest
+) {
+  await visiblePost(actor, postId)
+  const filter = eq(comments.postId, postId)
+  const totals = await db
+    .select({ value: count() })
+    .from(comments)
+    .where(filter)
+  const total = asCount(first(totals)?.value)
+  const offset = offsetFor(request, total)
+  const items =
+    total === 0
+      ? []
+      : await db
+          .select({
+            comment: comments,
+            author: {
+              id: users.id,
+              fname: users.fname,
+              lname: users.lname,
+            },
+          })
+          .from(comments)
+          .innerJoin(users, eq(comments.authorId, users.id))
+          .where(filter)
+          .orderBy(asc(comments.createdAt), asc(comments.id))
+          .limit(request.perPage)
+          .offset(offset)
+  return toPage(request, total, items)
+}
+
+export async function listReviews(
+  actor: UserRow | null,
+  postId: string,
+  request: PageRequest
+) {
+  await visiblePost(actor, postId)
+  const filter = eq(ratings.postId, postId)
+  const totals = await db.select({ value: count() }).from(ratings).where(filter)
+  const total = asCount(first(totals)?.value)
+  const offset = offsetFor(request, total)
+  const items =
+    total === 0
+      ? []
+      : await db
+          .select({
+            id: ratings.id,
+            score: ratings.score,
+            review: ratings.review,
+            userId: ratings.userId,
+            createdAt: ratings.createdAt,
+            author: {
+              id: users.id,
+              fname: users.fname,
+              lname: users.lname,
+            },
+          })
+          .from(ratings)
+          .innerJoin(users, eq(ratings.userId, users.id))
+          .where(filter)
+          .orderBy(desc(ratings.createdAt), desc(ratings.id))
+          .limit(request.perPage)
+          .offset(offset)
+  return toPage(request, total, items)
 }
 
 export async function getPost(actor: UserRow | null, postId: string) {

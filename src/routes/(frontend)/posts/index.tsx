@@ -1,12 +1,34 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Link,
+  stripSearchParams,
+} from "@tanstack/react-router"
+import type { SearchSchemaInput } from "@tanstack/react-router"
 import { ArrowRight } from "lucide-react"
+import { Paginator } from "@/components/paginator"
 import { Separator } from "@/components/ui/separator"
 import { publicPostsQuery } from "@/lib/queries/posts"
-import { formatDate, isoDate, postState } from "@/lib/records"
+import {
+  formatDate,
+  isoDate,
+  pageFromSearch,
+  perPageFromSearch,
+  postState,
+} from "@/lib/records"
 import type { PostSummary } from "@/lib/records"
 
 export const Route = createFileRoute("/(frontend)/posts/")({
+  validateSearch: (
+    search: { page?: number; perPage?: number } & SearchSchemaInput
+  ) => ({
+    page: pageFromSearch(search.page),
+    perPage: perPageFromSearch(search.perPage),
+  }),
+  search: {
+    middlewares: [stripSearchParams({ page: 1, perPage: 10 })],
+  },
+  loaderDeps: ({ search }) => ({ page: search.page, perPage: search.perPage }),
   head: () => ({
     meta: [
       { title: "Posts — Folio" },
@@ -16,12 +38,16 @@ export const Route = createFileRoute("/(frontend)/posts/")({
       },
     ],
   }),
-  loader: ({ context }) => context.queryClient.query(publicPostsQuery()),
+  loader: ({ context, deps }) =>
+    context.queryClient.query(publicPostsQuery(deps.page, deps.perPage)),
   component: PublicPostsPage,
 })
 
 function PublicPostsPage() {
-  const { data: posts } = useSuspenseQuery(publicPostsQuery())
+  const { page, perPage } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const { data } = useSuspenseQuery(publicPostsQuery(page, perPage))
+  const posts = data.items
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col py-16">
@@ -52,6 +78,15 @@ function PublicPostsPage() {
           {posts.map((post) => (
             <ArchiveEntry key={post.id} post={post} />
           ))}
+          <Paginator
+            meta={data.meta}
+            link={(next) => (
+              <Link to="/posts" search={{ page: next, perPage }} />
+            )}
+            onPerPageChange={(next) => {
+              void navigate({ search: { page: 1, perPage: next } })
+            }}
+          />
         </div>
       )}
     </main>

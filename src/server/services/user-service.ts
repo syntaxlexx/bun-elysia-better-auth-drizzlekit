@@ -1,8 +1,10 @@
-import { and, desc, eq, isNull } from "drizzle-orm"
+import { and, count, desc, eq, isNull } from "drizzle-orm"
 import { setCredentialPassword } from "../auth/credentials.ts"
 import { findLockDuration } from "../auth/lock-durations.ts"
 import { db } from "../db/index.ts"
 import { accountIssues, users } from "../db/schema.ts"
+import { asCount, offsetFor, toPage } from "../pagination.ts"
+import type { PageRequest } from "../pagination.ts"
 import { ServiceError } from "./errors.ts"
 
 type UserRow = typeof users.$inferSelect
@@ -332,8 +334,20 @@ export async function setStatus(
   return updated
 }
 
-export async function listUsers() {
-  return db.select().from(users).orderBy(desc(users.createdAt))
+export async function listUsers(request: PageRequest) {
+  const totals = await db.select({ value: count() }).from(users)
+  const total = asCount(totals[0]?.value)
+  const offset = offsetFor(request, total)
+  const items =
+    total === 0
+      ? []
+      : await db
+          .select()
+          .from(users)
+          .orderBy(desc(users.createdAt), desc(users.id))
+          .limit(request.perPage)
+          .offset(offset)
+  return toPage(request, total, items)
 }
 
 export async function listAccountIssues(userId: string) {
