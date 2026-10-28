@@ -63,7 +63,7 @@ services:
           "wget",
           "-q",
           "--spider",
-          "http://127.0.0.1:${APP_PORT:-3001}/api/ready",
+          "http://127.0.0.1:${APP_PORT2:-3001}/api/ready",
         ]
     build:
       context: .
@@ -72,4 +72,4 @@ services:
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
-      PORT: ${APP_PORT:-3001}
+      PORT: ${APP_PORT2:-3001}
