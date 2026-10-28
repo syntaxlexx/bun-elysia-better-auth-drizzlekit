@@ -9,6 +9,34 @@ pwd
 
 COMPOSE_PROFILE="production"
 
+# --env-file replaces the project .env. Pass both, or ${APP_PORT:-3000}
+# interpolates to 3000 and the process never listens on the port in .env.
+compose() {
+  docker compose --profile "${COMPOSE_PROFILE}" --env-file .env --env-file .env.image.local "$@"
+}
+
+read_port() {
+  local key="$1"
+  local fallback="$2"
+  local raw=""
+
+  if [[ -f .env ]]; then
+    raw="$(grep -E "^${key}=" .env | tail -n 1 || true)"
+    raw="${raw#*=}"
+    raw="${raw//\"/}"
+    raw="${raw//\'/}"
+    raw="${raw//$'\r'/}"
+    raw="${raw%%#*}"
+    raw="${raw// /}"
+  fi
+
+  if [[ -z "${raw}" ]]; then
+    printf '%s' "${fallback}"
+  else
+    printf '%s' "${raw}"
+  fi
+}
+
 echo "Pulling latest code..."
 git reset --hard
 git clean -fd
@@ -16,7 +44,7 @@ git pull --ff-only
 
 # Services and ports to deploy. Add them as you add services to the docker-compose.yml file.
 services=(app1 app2)
-ports=(3000 3001)
+ports=("$(read_port APP_PORT 3000)" "$(read_port APP_PORT2 3001)")
 
 # Image tags
 CURRENT_TAG="current"
@@ -25,9 +53,10 @@ PREVIOUS_TAG="previous"
 check_health() {
   local port="$1"
   local attempts=30
+  local i
 
   for ((i = 1; i <= attempts; i++)); do
-    if curl -fsS --max-time 5 "http://127.0.0.1:${port}/health" >/dev/null; then
+    if curl -fsS --max-time 5 "http://127.0.0.1:${port}/api/ready" >/dev/null; then
       return 0
     fi
 
@@ -43,22 +72,28 @@ set_image_tag() {
 }
 
 rollback_services() {
-  local count="$1"
+  local last="$1"
+  local k service port
+
+  if (( last < 0 || last >= ${#services[@]} )); then
+    echo "Rollback index ${last} is outside the service list"
+    exit 1
+  fi
 
   echo "Switching compose image tag back to ${PREVIOUS_TAG}..."
   set_image_tag "${PREVIOUS_TAG}"
 
-  for ((k = 0; k <= count; k++)); do
-    local service="${services[$k]}"
+  for ((k = 0; k <= last; k++)); do
+    service="${services[$k]}"
     echo "Rolling back ${service}..."
-    docker compose --profile "${COMPOSE_PROFILE}" --env-file .env.image.local up -d --no-deps --force-recreate "${service}"
+    compose up -d --no-deps --force-recreate "${service}"
   done
 
-  for ((k = 0; k <= count; k++)); do
-    local service="${services[$k]}"
-    local port="${ports[$k]}"
+  for ((k = 0; k <= last; k++)); do
+    service="${services[$k]}"
+    port="${ports[$k]}"
 
-    echo "Verifying rollback health for ${service}..."
+    echo "Verifying rollback health for ${service} on port ${port}..."
     if ! check_health "${port}"; then
       echo "Rollback healthcheck failed for ${service}"
       exit 1
@@ -85,21 +120,23 @@ sleep 3
 echo "Switching compose to image tag ${CURRENT_TAG}..."
 set_image_tag "${CURRENT_TAG}"
 
-for i in "${!services[@]}"; do
-  service="${services[$i]}"
-  port="${ports[$i]}"
+echo "Health checks will use ports: ${ports[*]}"
 
-  echo "Updating ${service}..."
-  docker compose --profile "${COMPOSE_PROFILE}" --env-file .env.image.local up -d --no-deps --force-recreate "${service}"
+for index in "${!services[@]}"; do
+  service="${services[$index]}"
+  port="${ports[$index]}"
 
-  echo "Waiting for health on ${service}..."
+  echo "Updating ${service} on port ${port}..."
+  compose up -d --no-deps --force-recreate "${service}"
+
+  echo "Waiting for health on ${service} (http://127.0.0.1:${port}/api/ready)..."
   if check_health "${port}"; then
     echo "${service} is healthy"
   else
     echo "${service} failed healthcheck"
 
     if docker image inspect "tanstart-elysia:${PREVIOUS_TAG}" >/dev/null 2>&1; then
-      rollback_services "${i}"
+      rollback_services "${index}"
       echo "Rollback completed"
     else
       echo "No previous image available for rollback"
